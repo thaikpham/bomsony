@@ -335,22 +335,41 @@ export function apply(room: Room, a: Action): Room {
     }
 
     case "flipLuck": {
-      const v = r?.verdicts.find((x) => x.playerId === a.playerId);
-      if (!v) reject("Không có quẻ để lật");
-      if (v!.drunk) reject("Uống rồi");
-      if (v!.flippedLuck) reject("Đã lật kèo rồi");
-      v!.flippedLuck = true;
-      const roll = Math.random();
-      if (roll < 0.5) {
-        v!.dose = 25;
-        v!.label = DOSE_LABEL(25);
-        v!.line = "Lật kèo THÀNH CÔNG! Giảm nhấp môi 25%.";
-      } else {
-        v!.dose = 100;
-        v!.label = DOSE_LABEL(100);
-        v!.line = "Lật kèo THẤT BẠI! Thầy phạt CẠN LY 100%.";
-        room.rageGauge = Math.min(100, (room.rageGauge || 0) + 25);
+      const vA = r?.verdicts.find((x) => x.playerId === a.playerId);
+      const pA = findPlayer(room, a.playerId);
+      if (!vA || !pA) reject("Không có quẻ để lật");
+      if (vA.drunk) reject("Uống rồi không lật kèo được nữa");
+      if (vA.flippedLuck) reject("Mỗi vòng chỉ được LẬT KÈO 1 lần!");
+
+      // Tìm những người chơi khác trong phòng chưa uống
+      const others = r?.verdicts.filter(
+        (x) => x.playerId !== a.playerId && !x.drunk,
+      );
+      if (!others || others.length === 0) {
+        reject("Không có ai khác trong bàn để tráo quẻ!");
       }
+
+      // Chọn ngẫu nhiên 1 đối thủ B
+      const vB = others[Math.floor(Math.random() * others.length)];
+      const pB = findPlayer(room, vB.playerId);
+      const nameB = pB?.name ?? "đối thủ";
+
+      // Tráo quẻ giữa A và B
+      const tempDose = vA.dose;
+      const tempLabel = vA.label;
+
+      vA.dose = vB.dose;
+      vA.label = vB.label;
+      vA.line = `LẬT KÈO THÀNH CÔNG! Bạn tráo quẻ với ${nameB}!`;
+      vA.reason = `Thầy tráo mức phạt của ${pA.name} sang ${nameB} và ngược lại!`;
+      vA.flippedLuck = true;
+
+      vB.dose = tempDose;
+      vB.label = tempLabel;
+      vB.line = `${pA.name} đã LẬT KÈO tráo án với bạn!`;
+      vB.reason = `Án phạt ${tempDose}% của ${pA.name} vừa bay qua đầu bạn!`;
+
+      room.rageGauge = Math.min(100, (room.rageGauge || 0) + 20);
       break;
     }
 

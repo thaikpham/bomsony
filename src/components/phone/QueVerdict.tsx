@@ -113,7 +113,7 @@ export function QueVerdict({
           {pushUsed ? "HẾT ĐẨY" : "ĐẨY QUA"}
         </SoftButton>
         <SoftButton onClick={onFlipLuck} haptic={HAPTIC.chip}>
-          🎲 LẬT KÈO
+          {verdict.flippedLuck ? "ĐÃ LẬT" : "🎲 LẬT KÈO"}
         </SoftButton>
         <SoftButton danger width={56} haptic={HAPTIC.duel} onClick={onDuel} className="text-[17px]">
           ×2
