@@ -53,11 +53,12 @@ function sweep(): void {
   }
 }
 
-export function createRoom(): Room {
+export function createRoom(customCode?: string): Room {
   sweep();
   const now = Date.now();
+  const code = customCode ? customCode.toUpperCase().trim().slice(0, 5) : newCode();
   const room: Room = {
-    code: newCode(),
+    code,
     mode: null,
     phase: "lobby",
     round: 0,
