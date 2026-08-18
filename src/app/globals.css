@@ -1,0 +1,190 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   Bợm Sony — design tokens (handoff §Design Tokens)
+   Một màu nhấn mỗi màn. 4 cỡ chữ. Không thêm font thứ hai.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --color-ink: #0a0a0c;
+  --color-surface: #14141a;
+  --color-surface-alt: #23231c;
+  --color-text: #f5f3ee;
+  --color-text-dim: rgb(245 243 238 / 0.5);
+  --color-text-faint: rgb(245 243 238 / 0.42);
+  --color-line: rgb(245 243 238 / 0.12);
+  --color-accent: #ffe600;
+  --color-accent-shadow: #8c7e00;
+  --color-danger: #ff2e4d;
+  --color-danger-shadow: #8c1526;
+  --color-danger-surface: #2a0e14;
+  --color-danger-text: #ff7a8c;
+  --color-safe: #b9e36a;
+  --color-safe-shadow: #6b8a34;
+
+  --radius-chip: 14px;
+  --radius-sub: 20px;
+  --radius-card: 24px;
+  --radius-main: 26px;
+  --radius-vote: 28px;
+
+  --font-sans: var(--font-noto-sans), system-ui, sans-serif;
+
+  --animate-bs-pulse: bsPulse 1.1s ease-in-out infinite;
+  --animate-bs-rise: bsRise 0.28s ease both;
+  --animate-bs-pop: bsPop 0.34s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  --animate-bs-breathe: bsBreathe 1.8s ease-in-out infinite;
+
+  @keyframes bsPulse {
+    0%,
+    100% {
+      opacity: 0.22;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  @keyframes bsRise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes bsPop {
+    0% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    60% {
+      transform: scale(1.05);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes bsBreathe {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}
+
+/* Reset phải nằm trong @layer base — để ngoài layer thì nó thắng cả utility
+   của Tailwind, và mọi `bg-*` / `p-*` / `border-*` trên <button> im lặng biến mất. */
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-ink);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    text-align: inherit;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  input {
+    font: inherit;
+    color: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  /* ── 4 cỡ chữ. Không thêm cỡ mới. ──────────────────────────
+     line-height ≥ 1.12 cho chữ Việt — dấu chữ hoa (Ẻ Ơ Ố Ầ Ợ)
+     cần chỗ phía trên. Chỉ chữ số + % mới được nén dưới 1.0. */
+  .t-display {
+    font-weight: 900;
+    font-size: 96px;
+    line-height: 1.12;
+    letter-spacing: -0.045em;
+  }
+  .t-title {
+    font-weight: 900;
+    font-size: 36px;
+    line-height: 1.16;
+    letter-spacing: -0.025em;
+  }
+  .t-body {
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 1.35;
+  }
+  .t-label {
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  /* Chỉ dùng cho khối toàn chữ số (150%, 2, 5.0) — không dùng cho chữ Việt. */
+  .t-numeral {
+    font-weight: 900;
+    line-height: 0.82;
+    letter-spacing: -0.07em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Nút "lún cứng": mọi hành động chính ─────────────────── */
+  .btn-chunk {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 8px 0 var(--btn-shadow);
+    transition:
+      transform 0.1s ease,
+      box-shadow 0.1s ease;
+  }
+  .btn-chunk:active:not(:disabled) {
+    transform: translateY(6px);
+    box-shadow: 0 2px 0 var(--btn-shadow);
+  }
+  .btn-chunk:disabled {
+    cursor: default;
+    opacity: 0.45;
+  }
+
+  /* ── Nút "nảy mềm": nút phụ, chip, thẻ chọn ──────────────── */
+  .btn-soft {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform 0.12s cubic-bezier(0.3, 1.6, 0.5, 1);
+  }
+  .btn-soft:active {
+    transform: scale(0.94);
+  }
+  .card-soft {
+    cursor: pointer;
+    transition: transform 0.14s cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+  .card-soft:active {
+    transform: scale(0.98);
+  }
+}
