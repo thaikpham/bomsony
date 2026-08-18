@@ -84,6 +84,36 @@ export function judgeLine(
     .replace("{num}", String(lifePath));
 }
 
+const REASONS: Record<Dose, string[]> = {
+  100: [
+    "Vì cung {zodiac} số {num} vướng sao xui chiếu thẳng, không cạn ly không giải được hạn!",
+    "Vì năng lượng số {num} hôm nay quá lố, phải cạn 100% để hạ hỏa!",
+    "Vì tử vi {zodiac} vướng góc xung chiếu, cạn ly ngay để tẩy uế!",
+  ],
+  50: [
+    "Vì số {num} thần số học đang lửng lơ nửa chừng, cạn 50% cho cân bằng âm dương!",
+    "Vì cung {zodiac} âm khí vừa đủ, uống nửa ly để tích thêm vận may!",
+    "Vì vướng nửa hạn nhỏ, Thầy thương tình cho gánh một nửa!",
+  ],
+  25: [
+    "Vì {zodiac} được sao Hồng Loan chiếu mệnh, Thầy nể mặt cho nhấp môi 25%!",
+    "Vì số {num} hôm nay có quý nhân gánh nợ, chỉ cần nhấp chút làm phép!",
+    "Vì vía {zodiac} hôm nay siêu lành, Thầy nhẹ tay cho nhấp môi!",
+  ],
+};
+
+export function judgeReason(
+  dose: Dose,
+  zodiac: string,
+  lifePath: number,
+  round: number,
+): string {
+  const pool = REASONS[dose];
+  return pool[hash("reason", zodiac, lifePath, round, dose) % pool.length]
+    .replace("{zodiac}", zodiac)
+    .replace("{num}", String(lifePath));
+}
+
 const TASKS_BY_NUM: Record<number, string> = {
   1: "Hô 'Bợm Sony đỉnh' rồi mới uống!",
   7: "Thì thầm lời phán cho người bên trái!",
@@ -116,6 +146,7 @@ export function makeVerdict(input: {
     dose,
     label: DOSE_LABEL(dose),
     line: judgeLine(dose, zodiac, lifePath, input.round),
+    reason: judgeReason(dose, zodiac, lifePath, input.round),
     task,
     chainNote,
     drunk: false,

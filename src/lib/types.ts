@@ -24,6 +24,8 @@ export type Verdict = {
   label: string;
   /** Lời phán ≤ 12 từ, giọng Thầy Phán. */
   line: string;
+  /** Lý do Thầy Phán giải thích vì sao bị phạt mức này. */
+  reason?: string;
   task?: string;
   chainNote?: string;
   flippedLuck?: boolean;

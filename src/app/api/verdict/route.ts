@@ -32,6 +32,7 @@ type VerdictPayload = {
   dose: Dose;
   label: string;
   line: string;
+  reason?: string;
 };
 
 const SCHEMA = {
@@ -40,6 +41,7 @@ const SCHEMA = {
     dose: { type: "integer", enum: [100, 50, 25] },
     label: { type: "string", enum: ["CẠN LY", "NỬA LY", "NHẤP MÔI"] },
     line: { type: "string", maxLength: 80 },
+    reason: { type: "string", maxLength: 120 },
   },
   required: ["dose", "label", "line"],
   additionalProperties: false,
@@ -71,7 +73,7 @@ export async function POST(req: Request) {
       round,
       rage: body.rage,
     });
-    return { dose: v.dose, label: v.label, line: v.line };
+    return { dose: v.dose, label: v.label, line: v.line, reason: v.reason };
   };
 
   if (process.env.GEMINI_API_KEY) {

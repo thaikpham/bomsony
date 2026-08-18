@@ -30,6 +30,7 @@ export type AIVerdict = {
   dose: Dose;
   label: string;
   line: string;
+  reason?: string;
 };
 
 /** Đã test trực tiếp API: gọi Gemini AI theo danh sách model hỗ trợ. */
@@ -85,7 +86,7 @@ export async function getVerdictAI(input: {
 
   const prompt = `Vòng ${round}. Cung ${zodiac}, số chủ đạo ${lifePath}. ${banned}${
     input.rage ? " Đây là vòng Thầy Phán nổi giận — án nặng hơn bình thường." : ""
-  } Phán mức uống cho người này. Trả về đúng định dạng JSON: {"dose": 100|50|25, "label": "CẠN LY"|"NỬA LY"|"NHẤP MÔI", "line": "lời phán ≤ 12 từ"}`;
+  } Phán mức uống cho người này. Trả về đúng định dạng JSON: {"dose": 100|50|25, "label": "CẠN LY"|"NỬA LY"|"NHẤP MÔI", "line": "lời phán ≤ 12 từ", "reason": "lý do hài hước Thầy phán giải thích tại sao phải uống mức này dựa vào cung hoàng đạo hoặc số chủ đạo ≤ 15 từ"}`;
 
   const aiResult = await callGeminiJSON<AIVerdict>(prompt, SYSTEM_VERDICT);
   if (aiResult && [100, 50, 25].includes(aiResult.dose) && aiResult.line) {
@@ -93,6 +94,7 @@ export async function getVerdictAI(input: {
       dose: aiResult.dose,
       label: DOSE_LABEL(aiResult.dose),
       line: aiResult.line.trim(),
+      reason: aiResult.reason?.trim() || undefined,
     };
   }
 
@@ -104,7 +106,7 @@ export async function getVerdictAI(input: {
     round: input.round,
     rage: input.rage,
   });
-  return { dose: v.dose, label: v.label, line: v.line };
+  return { dose: v.dose, label: v.label, line: v.line, reason: v.reason };
 }
 
 /** Engine Chế độ 2 — Truth or Drink: AI sinh câu hỏi bựa theo ngữ cảnh. */
