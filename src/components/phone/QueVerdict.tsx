@@ -87,8 +87,8 @@ export function QueVerdict({
         </div>
 
         {verdict.reason ? (
-          <div className="rounded-sub border border-line bg-surface p-2.5 text-[13px] text-accent/90 italic font-bold">
-            {`🔮 Lý do Thầy phán: "${verdict.reason}"`}
+          <div className="rounded-sub border border-accent/40 bg-accent/10 p-3.5 text-[20px] leading-[1.25] font-black text-accent [text-wrap:pretty]">
+            {verdict.reason}
           </div>
         ) : null}
 
