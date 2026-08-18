@@ -9,11 +9,13 @@ export function JudgementMobile({
   spotlight,
   next,
   onTroll,
+  onNextRound,
 }: {
   round: Round;
   spotlight: Player | null;
   next: Player | null;
   onTroll: (label: string) => void;
+  onNextRound: () => void;
 }) {
   const tin = round.votes.filter((v) => v.value === "tin").length;
   const doi = round.votes.filter((v) => v.value === "doi").length;
@@ -91,21 +93,35 @@ export function JudgementMobile({
         <div className="t-body max-w-[320px] opacity-85">{view.line}</div>
       </div>
 
-      {/* Hàng nút Reaction Troll gửi về cả bàn */}
-      <div className="flex shrink-0 gap-2">
-        {["DZÔ!", "HÈN", "BỊA DỞ"].map((label) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => {
-              vibrate(HAPTIC.chip);
-              onTroll(label);
-            }}
-            className="btn-soft h-[56px] flex-1 rounded-sub border border-line bg-ink/30 text-[17px] font-black text-text backdrop-blur-sm active:scale-95"
-          >
-            {label}
-          </button>
-        ))}
+      <div className="flex shrink-0 flex-col gap-3">
+        {/* Nút Chuyển vòng tiếp theo trên điện thoại */}
+        <button
+          type="button"
+          onClick={() => {
+            vibrate(HAPTIC.sub);
+            onNextRound();
+          }}
+          className="flex h-[66px] w-full items-center justify-center rounded-sub bg-ink text-[22px] font-black text-accent shadow-xl active:scale-95 transition-transform"
+        >
+          VÒNG TIẾP ➔
+        </button>
+
+        {/* Hàng nút Reaction Troll gửi về cả bàn */}
+        <div className="flex shrink-0 gap-2">
+          {["DZÔ!", "HÈN", "BỊA DỞ"].map((label) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => {
+                vibrate(HAPTIC.chip);
+                onTroll(label);
+              }}
+              className="btn-soft h-[48px] flex-1 rounded-sub border border-line bg-ink/30 text-[16px] font-black text-text backdrop-blur-sm active:scale-95"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

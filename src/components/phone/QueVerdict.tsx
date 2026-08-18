@@ -73,11 +73,21 @@ export function QueVerdict({
   );
 }
 
-/** 4f · state `done` — đã cạn, chờ vòng sau. */
-export function QueDone({ dose, onWait }: { dose: number; onWait?: () => void }) {
+/** 4f · state `done` — đã cạn, bấm VÒNG TIẾP để sang vòng sau. */
+export function QueDone({
+  dose,
+  drunkCount,
+  totalPlayers,
+  onNextRound,
+}: {
+  dose: number;
+  drunkCount?: number;
+  totalPlayers?: number;
+  onNextRound: () => void;
+}) {
   return (
     <>
-      <div className="flex flex-1 animate-[bsRise_0.28s_ease_both] flex-col justify-center gap-[22px]">
+      <div className="flex flex-1 animate-[bsRise_0.28s_ease_both] flex-col justify-center gap-[18px]">
         <div className="flex h-25 w-25 animate-[bsPop_0.4s_cubic-bezier(0.2,1.5,0.4,1)_both] items-center justify-center rounded-full bg-safe text-[48px] font-black text-ink">
           ✓
         </div>
@@ -87,9 +97,14 @@ export function QueDone({ dose, onWait }: { dose: number; onWait?: () => void })
         <div className="t-body text-[rgb(245_243_238/0.6)]">
           Đã cạn {dose}%. Cả bàn thấy rồi.
         </div>
+        {drunkCount && totalPlayers ? (
+          <div className="t-label text-accent font-black">
+            {drunkCount} / {totalPlayers} BỢM ĐÃ CẠN LY
+          </div>
+        ) : null}
       </div>
-      <ChunkyButton tone="surface" height={80} fontSize={22} onClick={onWait}>
-        CHỜ VÒNG SAU
+      <ChunkyButton tone="accent" height={80} fontSize={22} onClick={onNextRound}>
+        VÒNG TIẾP ➔
       </ChunkyButton>
     </>
   );

@@ -174,7 +174,16 @@ export function PlayRoom({ code }: { code: string }) {
       if (!myVerdict) {
         return <PhoneWait label={`VÒNG ${round.index}`} title={<>THOÁT VÒNG NÀY</>} line="Chờ cả bàn cạn xong." />;
       }
-      if (myVerdict.drunk) return <QueDone dose={myVerdict.dose} />;
+      if (myVerdict.drunk) {
+        return (
+          <QueDone
+            dose={myVerdict.dose}
+            drunkCount={round.verdicts.filter((v) => v.drunk).length}
+            totalPlayers={room.players.length}
+            onNextRound={() => void send({ t: "nextRound" })}
+          />
+        );
+      }
       if (step === "push") {
         return (
           <PushPick
@@ -227,6 +236,7 @@ export function PlayRoom({ code }: { code: string }) {
           spotlight={spotlight}
           next={nextUp}
           onTroll={(label) => void send({ t: "troll", playerId: player.id, label })}
+          onNextRound={() => void send({ t: "nextRound" })}
         />
       );
     }
