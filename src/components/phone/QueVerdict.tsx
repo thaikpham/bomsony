@@ -56,9 +56,6 @@ export function QueVerdict({
         <div className="t-body text-[rgb(245_243_238/0.6)] [text-wrap:pretty]">
           {verdict.line}
         </div>
-        {verdict.challenge ? (
-          <div className="t-label text-danger-text">{verdict.challenge}</div>
-        ) : null}
       </div>
 
       <ChunkyButton onClick={onDrink}>ĐÃ UỐNG</ChunkyButton>

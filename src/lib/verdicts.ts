@@ -47,13 +47,6 @@ const LINES: Record<Dose, string[]> = {
   ],
 };
 
-const CHALLENGES = [
-  "Kể tên 3 người bạn nợ lời xin lỗi.",
-  "Đọc to tin nhắn cuối cùng bạn gửi.",
-  "Hát một câu, sai lời thì uống thêm.",
-  "Nhìn thẳng cả bàn, nói một điều thật.",
-];
-
 /** Hash ổn định — cùng (zodiac, num, round) ra cùng lời phán. */
 function hash(...parts: (string | number)[]): number {
   let h = 2166136261;
@@ -104,13 +97,11 @@ export function makeVerdict(input: {
   let dose = rollDose(zodiac, lifePath, input.round);
   if (input.rage) dose = doubleDose(dose);
 
-  const h = hash("ch", input.playerId, input.round);
   return {
     playerId: input.playerId,
     dose,
     label: DOSE_LABEL(dose),
     line: judgeLine(dose, zodiac, lifePath, input.round),
-    challenge: dose === 100 && h % 3 === 0 ? CHALLENGES[h % CHALLENGES.length] : undefined,
     drunk: false,
   };
 }

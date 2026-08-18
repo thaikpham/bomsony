@@ -32,7 +32,6 @@ type VerdictPayload = {
   dose: Dose;
   label: string;
   line: string;
-  challenge?: string;
 };
 
 const SCHEMA = {
@@ -41,7 +40,6 @@ const SCHEMA = {
     dose: { type: "integer", enum: [100, 50, 25] },
     label: { type: "string", enum: ["CẠN LY", "NỬA LY", "NHẤP MÔI"] },
     line: { type: "string", maxLength: 80 },
-    challenge: { type: "string", maxLength: 80 },
   },
   required: ["dose", "label", "line"],
   additionalProperties: false,
@@ -73,7 +71,7 @@ export async function POST(req: Request) {
       round,
       rage: body.rage,
     });
-    return { dose: v.dose, label: v.label, line: v.line, challenge: v.challenge };
+    return { dose: v.dose, label: v.label, line: v.line };
   };
 
   if (process.env.GEMINI_API_KEY) {
@@ -120,7 +118,6 @@ export async function POST(req: Request) {
             dose: parsed.dose,
             label: DOSE_LABEL(parsed.dose),
             line: parsed.line.trim(),
-            challenge: parsed.challenge?.trim() || undefined,
           };
           cache.set(key, verdict);
           return NextResponse.json({ verdict, source: "claude" });

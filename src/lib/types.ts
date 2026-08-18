@@ -24,7 +24,6 @@ export type Verdict = {
   label: string;
   /** Lời phán ≤ 12 từ, giọng Thầy Phán. */
   line: string;
-  challenge?: string;
   drunk: boolean;
 };
 
