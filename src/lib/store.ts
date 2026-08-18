@@ -66,6 +66,7 @@ export function createRoom(): Room {
     players: [],
     current: null,
     trolls: [],
+    rageGauge: 0,
     usedQuestions: [],
     createdAt: now,
     updatedAt: now,

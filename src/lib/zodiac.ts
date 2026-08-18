@@ -41,3 +41,20 @@ export function isValidBirthDate(iso: string): boolean {
   const year = Number(iso.slice(0, 4));
   return year >= 1920 && year <= new Date().getUTCFullYear() - 15;
 }
+
+const CLASH_PAIRS: [string, string][] = [
+  ["BỌ CẠP", "SƯ TỬ"],
+  ["BẠCH DƯƠNG", "THIÊN BÌNH"],
+  ["KIM NGƯU", "BỌ CẠP"],
+  ["SONG TỬ", "NHÂN MÃ"],
+  ["CỰ GIẢI", "MA KẾT"],
+  ["XỬ NỮ", "SONG NGƯ"],
+  ["BẢO BÌNH", "SƯ TỬ"],
+];
+
+export function isClash(z1: string | null, z2: string | null): boolean {
+  if (!z1 || !z2 || z1 === z2) return false;
+  return CLASH_PAIRS.some(
+    ([a, b]) => (z1 === a && z2 === b) || (z1 === b && z2 === a),
+  );
+}

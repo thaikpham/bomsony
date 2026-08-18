@@ -18,10 +18,13 @@ export function QueVerdict({
   verdict,
   appealUsed,
   pushUsed,
+  clash,
   onDrink,
   onAppeal,
   onPush,
   onDuel,
+  onFlipLuck,
+  onClashResult,
 }: {
   round: number;
   zodiac: string | null;
@@ -29,10 +32,13 @@ export function QueVerdict({
   verdict: Verdict;
   appealUsed: boolean;
   pushUsed: boolean;
+  clash?: boolean;
   onDrink: () => void;
   onAppeal: () => void;
   onPush: () => void;
   onDuel: () => void;
+  onFlipLuck: () => void;
+  onClashResult: (win: boolean) => void;
 }) {
   return (
     <>
@@ -43,29 +49,67 @@ export function QueVerdict({
         </span>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-[18px]">
+      {clash ? (
+        <div className="flex shrink-0 animate-[bsPop_0.3s_ease_both] flex-col gap-2 rounded-card border-2 border-danger bg-danger-surface p-3 text-center">
+          <div className="text-[14px] font-black text-danger-text">⚡ THIÊN ĐỊCH TƯƠNG KHẮC!</div>
+          <div className="text-[13px] text-text">Oẳn Tù Tì với đối thủ tương khắc trong bàn:</div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onClashResult(true)}
+              className="flex-1 rounded-sub bg-safe py-2 text-[14px] font-black text-ink"
+            >
+              THẮNG (THOÁT)
+            </button>
+            <button
+              type="button"
+              onClick={() => onClashResult(false)}
+              className="flex-1 rounded-sub bg-danger py-2 text-[14px] font-black text-white"
+            >
+              THUA (UỐNG 100%)
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-[12px]">
         <div
           key={verdict.dose}
-          className="t-numeral animate-[bsPop_0.34s_cubic-bezier(0.2,1.5,0.4,1)_both] text-[150px] text-accent"
+          className="t-numeral animate-[bsPop_0.34s_cubic-bezier(0.2,1.5,0.4,1)_both] text-[120px] leading-none text-accent"
         >
           {verdict.dose}%
         </div>
-        <div className="text-[36px] leading-[1.14] font-black tracking-[-0.02em]">
+        <div className="text-[32px] leading-[1.12] font-black tracking-[-0.02em]">
           {verdict.label}
         </div>
-        <div className="t-body text-[rgb(245_243_238/0.6)] [text-wrap:pretty]">
+        <div className="t-body text-[rgb(245_243_238/0.7)] [text-wrap:pretty]">
           {verdict.line}
         </div>
+
+        {verdict.task ? (
+          <div className="rounded-sub border border-line bg-surface p-2.5 text-[14px] font-bold text-accent">
+            🎭 {verdict.task}
+          </div>
+        ) : null}
+
+        {verdict.chainNote ? (
+          <div className="rounded-sub border border-line bg-surface p-2 text-[13px] text-safe font-bold">
+            🔗 {verdict.chainNote}
+          </div>
+        ) : null}
       </div>
 
       <ChunkyButton onClick={onDrink}>ĐÃ UỐNG</ChunkyButton>
 
-      <div className="flex shrink-0 gap-2.5">
+      <div className="flex shrink-0 gap-2">
         <SoftButton onClick={onAppeal}>{appealUsed ? "HẾT CÃI" : "XIN GIẢM"}</SoftButton>
         <SoftButton onClick={onPush} haptic={HAPTIC.push}>
           {pushUsed ? "HẾT ĐẨY" : "ĐẨY QUA"}
         </SoftButton>
-        <SoftButton danger width={74} haptic={HAPTIC.duel} onClick={onDuel} className="text-[19px]">
+        <SoftButton onClick={onFlipLuck} haptic={HAPTIC.chip}>
+          🎲 LẬT KÈO
+        </SoftButton>
+        <SoftButton danger width={56} haptic={HAPTIC.duel} onClick={onDuel} className="text-[17px]">
           ×2
         </SoftButton>
       </div>

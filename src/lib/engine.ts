@@ -18,7 +18,7 @@ import {
   tierFor,
 } from "./schedule";
 import { makeVerdict, mergeDose } from "./verdicts";
-import { isValidBirthDate, lifePathOf, zodiacOf } from "./zodiac";
+import { isValidBirthDate, isClash, lifePathOf, zodiacOf } from "./zodiac";
 
 export type Action =
   | { t: "setMode"; mode: Mode }
@@ -31,6 +31,8 @@ export type Action =
   | { t: "appeal"; playerId: string }
   | { t: "push"; playerId: string; targetId: string }
   | { t: "duel"; playerId: string }
+  | { t: "flipLuck"; playerId: string }
+  | { t: "clashResult"; winnerId: string; loserId: string }
   | { t: "tableHit"; playerId: string }
   | { t: "speakDone"; playerId: string }
   | { t: "sip"; playerId: string }
@@ -73,9 +75,29 @@ const voters = (room: Room, exceptId: string | null) =>
 
 function beginRound(room: Room, index: number, carriedQuestion?: string): void {
   const mode = room.mode ?? "que";
-  const type = roundTypeFor(mode, index);
+  let type = roundTypeFor(mode, index);
+  if (room.rageGauge >= 100) {
+    type = "rage";
+    room.rageGauge = 0;
+  } else if (mode === "que" && index % 4 === 0) {
+    type = "wildcard";
+  }
+
   const tier = tierFor(index);
   const seed = seedOf(room, index);
+
+  // Tìm cặp Thiên địch tương khắc (nếu có)
+  const activePlayers = room.players.filter((p) => p.connected && p.zodiac);
+  let clashPair: [string, string] | null = null;
+  for (let i = 0; i < activePlayers.length; i++) {
+    for (let j = i + 1; j < activePlayers.length; j++) {
+      if (isClash(activePlayers[i].zodiac, activePlayers[j].zodiac)) {
+        clashPair = [activePlayers[i].id, activePlayers[j].id];
+        break;
+      }
+    }
+    if (clashPair) break;
+  }
 
   const round: Round = {
     index,
@@ -88,14 +110,14 @@ function beginRound(room: Room, index: number, carriedQuestion?: string): void {
     outcome: null,
     nextQuestionOptions: null,
     pushedTo: {},
+    clashPair,
     startedAt: Date.now(),
   };
 
-  // Vòng tính theo phần trăm ly chỉ tồn tại ở chế độ quẻ.
+  // Vòng tính theo phần trăm ly
   const percentRound = mode === "que" && (type === "que" || type === "rage");
 
   if (percentRound) {
-    // Cả bàn nhận quẻ cùng lúc. 'rage' = Thầy Phán nổi giận, ×2 án mọi người.
     round.verdicts = room.players.map((p) =>
       makeVerdict({
         playerId: p.id,
@@ -105,12 +127,13 @@ function beginRound(room: Room, index: number, carriedQuestion?: string): void {
         rage: type === "rage",
       }),
     );
-  } else if (type === "table" && mode === "que") {
-    // Cả bàn dính — ai dính điều kiện thì tự bấm trên phone.
-    round.question = pickTablePrompt(room.bannedTopics, room.usedQuestions, seed);
+  } else if ((type === "table" || type === "wildcard") && mode === "que") {
+    round.question =
+      type === "wildcard"
+        ? "QUẺ MẬT CẢ BÀN: Ai có tháng sinh lẻ hoặc đang đeo phụ kiện ➔ Cạn ly 50%!"
+        : pickTablePrompt(room.bannedTopics, room.usedQuestions, seed);
     room.usedQuestions.push(round.question);
   } else {
-    // tod · reverse · duel · rage — chai quay chọn 1 người.
     const ids = room.players.filter((p) => p.connected).map((p) => p.id);
     round.spotlightPlayerId = pickSpotlight(ids, room.current?.spotlightPlayerId ?? null);
     const q =
@@ -265,6 +288,7 @@ export function apply(room: Room, a: Action): Room {
       v!.dose = 25;
       v!.label = DOSE_LABEL(25);
       v!.line = "Thầy nể mặt lần này.";
+      room.rageGauge = Math.min(100, (room.rageGauge || 0) + 25);
       break;
     }
 
@@ -278,6 +302,7 @@ export function apply(room: Room, a: Action): Room {
       if (!target || target.id === p!.id) reject("Chọn người khác");
       p!.pushUsed = true;
       v!.drunk = true; // án chuyển đi, mình sạch
+      room.rageGauge = Math.min(100, (room.rageGauge || 0) + 25);
       const tv = r!.verdicts.find((x) => x.playerId === target!.id);
       if (tv) {
         // Chuyển toàn bộ án sang người được chọn — cộng dồn, trần vẫn là 100%.
@@ -305,6 +330,42 @@ export function apply(room: Room, a: Action): Room {
       v!.dose = 100;
       v!.label = DOSE_LABEL(100);
       v!.line = "Gan to thì trả giá.";
+      break;
+    }
+
+    case "flipLuck": {
+      const v = r?.verdicts.find((x) => x.playerId === a.playerId);
+      if (!v) reject("Không có quẻ để lật");
+      if (v!.drunk) reject("Uống rồi");
+      if (v!.flippedLuck) reject("Đã lật kèo rồi");
+      v!.flippedLuck = true;
+      const roll = Math.random();
+      if (roll < 0.5) {
+        v!.dose = 25;
+        v!.label = DOSE_LABEL(25);
+        v!.line = "Lật kèo THÀNH CÔNG! Giảm nhấp môi 25%.";
+      } else {
+        v!.dose = 100;
+        v!.label = DOSE_LABEL(100);
+        v!.line = "Lật kèo THẤT BẠI! Thầy phạt CẠN LY 100%.";
+        room.rageGauge = Math.min(100, (room.rageGauge || 0) + 25);
+      }
+      break;
+    }
+
+    case "clashResult": {
+      const vWin = r?.verdicts.find((x) => x.playerId === a.winnerId);
+      const vLose = r?.verdicts.find((x) => x.playerId === a.loserId);
+      if (vWin) {
+        vWin.dose = 25;
+        vWin.label = DOSE_LABEL(25);
+        vWin.line = "THẮNG TƯƠNG KHẮC! Thoát cạn ly.";
+      }
+      if (vLose) {
+        vLose.dose = 100;
+        vLose.label = DOSE_LABEL(100);
+        vLose.line = "THUA TƯƠNG KHẮC! Nhận trọn CẠN LY 100%.";
+      }
       break;
     }
 

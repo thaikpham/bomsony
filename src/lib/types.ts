@@ -3,7 +3,7 @@
 export type Mode = "que" | "tod";
 export type Phase = "lobby" | "safety" | "round" | "reveal" | "final";
 export type Tier = "warm" | "mid" | "spicy";
-export type RoundType = "que" | "tod" | "table" | "duel" | "reverse" | "rage";
+export type RoundType = "que" | "tod" | "table" | "duel" | "reverse" | "rage" | "wildcard";
 export type Dose = 100 | 50 | 25;
 export type VoteValue = "tin" | "doi";
 export type Outcome = "truth" | "liar" | "skipped" | "immune";
@@ -24,6 +24,9 @@ export type Verdict = {
   label: string;
   /** Lời phán ≤ 12 từ, giọng Thầy Phán. */
   line: string;
+  task?: string;
+  chainNote?: string;
+  flippedLuck?: boolean;
   drunk: boolean;
 };
 
@@ -72,6 +75,8 @@ export type Round = {
   nextQuestionOptions: [string, string] | null;
   /** Người bị đẩy án nhận thêm — chỉ 'que'. */
   pushedTo: Record<string, string>;
+  /** Cặp Thiên địch tương khắc trong vòng (nếu có). */
+  clashPair?: [string, string] | null;
   startedAt: number;
 };
 
@@ -85,6 +90,8 @@ export type Room = {
   players: Player[];
   current: Round | null;
   trolls: Troll[];
+  /** Thanh nổi giận của Thầy Phán (0 đến 100). */
+  rageGauge: number;
   /** Câu đã dùng — không hỏi lại. */
   usedQuestions: string[];
   createdAt: number;

@@ -84,6 +84,13 @@ export function judgeLine(
     .replace("{num}", String(lifePath));
 }
 
+const TASKS_BY_NUM: Record<number, string> = {
+  1: "Hô 'Bợm Sony đỉnh' rồi mới uống!",
+  7: "Thì thầm lời phán cho người bên trái!",
+  8: "Chỉ định 1 bạn cùng uống mừng!",
+  9: "Vừa hô 'DZÔ' vừa nâng ly!",
+};
+
 export function makeVerdict(input: {
   playerId: string;
   zodiac: string | null;
@@ -97,11 +104,20 @@ export function makeVerdict(input: {
   let dose = rollDose(zodiac, lifePath, input.round);
   if (input.rage) dose = doubleDose(dose);
 
+  const h = hash("ext", input.playerId, input.round);
+  const task = TASKS_BY_NUM[lifePath] ?? "Nhìn thẳng cả bàn, nâng ly mỉm cười!";
+  const chainNote =
+    h % 5 === 0
+      ? "DÂY CHUYỀN: Nếu bạn cạn ly, người bên phải nhấp môi 25% theo!"
+      : undefined;
+
   return {
     playerId: input.playerId,
     dose,
     label: DOSE_LABEL(dose),
     line: judgeLine(dose, zodiac, lifePath, input.round),
+    task,
+    chainNote,
     drunk: false,
   };
 }

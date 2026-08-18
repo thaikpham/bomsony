@@ -196,6 +196,13 @@ export function PlayRoom({ code }: { code: string }) {
           />
         );
       }
+      const isClashing = Boolean(
+        round.clashPair && round.clashPair.includes(player.id),
+      );
+      const opponentId = isClashing
+        ? round.clashPair!.find((id) => id !== player.id)!
+        : "";
+
       return (
         <QueVerdict
           round={round.index}
@@ -204,6 +211,7 @@ export function PlayRoom({ code }: { code: string }) {
           verdict={myVerdict}
           appealUsed={player.appealUsed}
           pushUsed={player.pushUsed}
+          clash={isClashing}
           onDrink={() => void send({ t: "drink", playerId: player.id })}
           onAppeal={() => void send({ t: "appeal", playerId: player.id })}
           onPush={() => {
@@ -214,6 +222,14 @@ export function PlayRoom({ code }: { code: string }) {
             void send({ t: "duel", playerId: player.id });
             say("Thách đấu — 100%");
           }}
+          onFlipLuck={() => void send({ t: "flipLuck", playerId: player.id })}
+          onClashResult={(win) =>
+            void send({
+              t: "clashResult",
+              winnerId: win ? player.id : opponentId,
+              loserId: win ? opponentId : player.id,
+            })
+          }
         />
       );
     }
