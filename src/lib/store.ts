@@ -43,6 +43,14 @@ function sweep(): void {
       store.listeners.delete(code);
     }
   }
+  if (store.rooms.size > 200) {
+    const sorted = [...store.rooms.entries()].sort((a, b) => a[1].updatedAt - b[1].updatedAt);
+    const toDelete = sorted.slice(0, store.rooms.size - 200);
+    for (const [code] of toDelete) {
+      store.rooms.delete(code);
+      store.listeners.delete(code);
+    }
+  }
 }
 
 export function createRoom(): Room {

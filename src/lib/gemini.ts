@@ -48,6 +48,7 @@ async function callGeminiJSON<T>(prompt: string, systemInstruction: string): Pro
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { responseMimeType: "application/json" },
         }),
+        signal: AbortSignal.timeout(3500),
       });
 
       if (!res.ok) continue;
