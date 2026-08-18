@@ -3,23 +3,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Birthdate } from "@/components/phone/Birthdate";
 import { JoinForm } from "@/components/phone/JoinForm";
+import { LobbyMobile } from "@/components/phone/LobbyMobile";
+import { SafetyMobile } from "@/components/phone/SafetyMobile";
+import { JudgementMobile } from "@/components/phone/JudgementMobile";
+import { PodiumMobile } from "@/components/phone/PodiumMobile";
 import { PushPick, QueDone, QueVerdict } from "@/components/phone/QueVerdict";
 import {
   NextQuestionPick,
   TurnAsk,
-  TurnImmune,
-  TurnJudge,
-  TurnSip,
   TurnSpeak,
 } from "@/components/phone/Turn";
-import { PhoneWait, VoteChoice, VoteCount, VoteHeader, VoteResult } from "@/components/phone/Vote";
+import { PhoneWait, VoteChoice, VoteCount, VoteHeader } from "@/components/phone/Vote";
 import { ChunkyButton } from "@/components/ui/Buttons";
 import { PhoneShell } from "@/components/ui/Stage";
 import { Toast } from "@/components/ui/Toast";
+import { TrollLayer } from "@/components/host/TrollLayer";
 import { HAPTIC, vibrate } from "@/lib/haptics";
 import { useIdentity } from "@/lib/identity";
 import { useRoom } from "@/lib/useRoom";
-import type { VoteValue } from "@/lib/types";
+import type { VoteValue, Mode } from "@/lib/types";
 
 /** Bước cục bộ trong màn hiện tại — server không cần biết. */
 type Step = "auto" | "push" | "speak" | "judged";
@@ -43,8 +45,7 @@ export function PlayRoom({ code }: { code: string }) {
 
   const round = room?.current ?? null;
 
-  // Vòng mới thì mọi bước cục bộ về mặc định — reset ngay trong lúc render,
-  // không qua effect, nên không có khung hình nào hiện bước cũ.
+  // Vòng mới thì mọi bước cục bộ về mặc định — reset ngay trong lúc render
   const stepKey = `${room?.phase ?? ""}:${round?.index ?? 0}`;
   const [prevStepKey, setPrevStepKey] = useState(stepKey);
   if (prevStepKey !== stepKey) {
@@ -60,7 +61,7 @@ export function PlayRoom({ code }: { code: string }) {
   if (status === "gone") {
     return (
       <PhoneShell>
-        <PhoneWait label="BỢM SONY" title="PHÒNG ĐÃ TAN" line="Hỏi chủ xị mã mới." />
+        <PhoneWait label="BỢM SONY" title="PHÒNG ĐÃ TAN" line="Mở trang chủ để tạo phòng mới." />
       </PhoneShell>
     );
   }
@@ -76,18 +77,23 @@ export function PlayRoom({ code }: { code: string }) {
   const spotlight = round?.spotlightPlayerId
     ? (room.players.find((p) => p.id === round.spotlightPlayerId) ?? null)
     : null;
+  const connected = room.players.filter((p) => p.connected);
+  const nextUp =
+    spotlight && connected.length > 1
+      ? connected[(connected.findIndex((p) => p.id === spotlight.id) + 1) % connected.length]
+      : null;
+
   const isSpotlight = round?.spotlightPlayerId === player.id;
   const myVerdict = round?.verdicts.find((v) => v.playerId === player.id) ?? null;
   const myVote = round?.votes.find((v) => v.voterId === player.id) ?? null;
   const tin = round?.votes.filter((v) => v.value === "tin").length ?? 0;
   const doi = round?.votes.filter((v) => v.value === "doi").length ?? 0;
-  const liar = round?.outcome === "liar";
   const reversed = round?.type === "reverse";
   const rage = round?.type === "rage";
   const duel = round?.type === "duel";
 
   const body = (() => {
-    // ── Trước trận ────────────────────────────────────────────────────────
+    // ── 1. Trước trận / Phòng chờ trên điện thoại ───────────────────────
     if (room.phase === "lobby") {
       if (room.mode === "que" && !player.birthDate) {
         return (
@@ -100,34 +106,40 @@ export function PlayRoom({ code }: { code: string }) {
         );
       }
       return (
-        <PhoneWait
-          label={`PHÒNG ${room.code}`}
-          title={<>ĐANG CHỜ CHỦ XỊ</>}
-          line={
-            player.birthDate
-              ? `${player.zodiac} · số ${player.lifePathNumber}. Thầy xem rồi.`
-              : `${room.players.length} người đã vào. Rót sẵn đi.`
-          }
+        <LobbyMobile
+          code={room.code}
+          mode={room.mode}
+          players={room.players}
+          onPickMode={(mode: Mode) => void send({ t: "setMode", mode })}
+          onStart={() => void send({ t: "startGame" })}
         />
       );
     }
 
+    // ── 2. Chốt Vùng Cấm trên điện thoại ────────────────────────────────
     if (room.phase === "safety") {
       return (
-        <PhoneWait
-          label={`PHÒNG ${room.code}`}
-          title={<>CHỐT VÙNG CẤM</>}
-          line="Nhìn màn hình lớn. Gạch cái nào không muốn bị hỏi."
+        <SafetyMobile
+          banned={room.bannedTopics}
+          onToggle={(topic) =>
+            void send({
+              t: "setSafety",
+              bannedTopics: room.bannedTopics.includes(topic)
+                ? room.bannedTopics.filter((x) => x !== topic)
+                : [...room.bannedTopics, topic],
+            })
+          }
+          onStart={() => void send({ t: "startGame" })}
         />
       );
     }
 
+    // ── 3. Tổng kết / Podium trên điện thoại ─────────────────────────────
     if (room.phase === "final") {
       return (
-        <PhoneWait
-          label="HẾT TRẬN"
-          title={<>{player.totalGlasses.toFixed(1)} LY</>}
-          line={`Soi đúng ${player.detectivePoints} lần. Uống nước lọc đi.`}
+        <PodiumMobile
+          players={room.players}
+          onNewGame={() => void send({ t: "newGame" })}
         />
       );
     }
@@ -136,8 +148,7 @@ export function PlayRoom({ code }: { code: string }) {
       return <PhoneWait label="BỢM SONY" title={<>ĐANG XẾP VÒNG</>} line="Chờ Thầy Phán." />;
     }
 
-    // ── Chế độ 1 — quẻ, cả bàn cùng lúc ───────────────────────────────────
-    // Vòng tính theo phần trăm ly — chỉ có ở chế độ quẻ.
+    // ── 4. Chế độ 1 — Quẻ (Số trời đã định) ─────────────────────────────
     if (room.mode === "que") {
       if (round.type === "table" && !myVerdict) {
         return (
@@ -198,29 +209,30 @@ export function PlayRoom({ code }: { code: string }) {
       );
     }
 
-    // ── Chế độ 2 — Truth or Drink ─────────────────────────────────────────
-    if (isSpotlight) {
-      if (room.phase === "reveal") {
-        if (round.outcome === "immune") return <TurnImmune onNext={() => setStep("judged")} />;
-        if (round.outcome === "skipped" && step !== "judged") {
-          return <TurnSip reversed={reversed} rage={rage} duel={duel} onDone={() => setStep("judged")} />;
-        }
-        if (step !== "judged" && (round.outcome === "liar" || round.outcome === "truth")) {
-          return (
-            <TurnJudge tin={tin} doi={doi} liar={liar} rage={rage} duel={duel} onNext={() => setStep("judged")} />
-          );
-        }
-        const opts = round.nextQuestionOptions;
-        if (opts && opts[0] !== opts[1]) {
-          return (
-            <NextQuestionPick
-              options={opts}
-              onPick={(index) => void send({ t: "chooseNext", playerId: player.id, index })}
-            />
-          );
-        }
-        return <PhoneWait label={`VÒNG ${round.index}`} title={<>XONG LƯỢT</>} line="Câu đã giao. Chờ vòng sau." />;
+    // ── 5. Chế độ 2 — Truth or Drink ────────────────────────────────────
+    // Khi chốt phiếu / Reveal ➔ Tất cả điện thoại hiện màn Phán Xét đồng bộ
+    if (room.phase === "reveal" && round.spotlightPlayerId) {
+      const opts = round.nextQuestionOptions;
+      if (isSpotlight && opts && opts[0] !== opts[1]) {
+        return (
+          <NextQuestionPick
+            options={opts}
+            onPick={(index) => void send({ t: "chooseNext", playerId: player.id, index })}
+          />
+        );
       }
+      return (
+        <JudgementMobile
+          round={round}
+          spotlight={spotlight}
+          next={nextUp}
+          onTroll={(label) => void send({ t: "troll", playerId: player.id, label })}
+        />
+      );
+    }
+
+    // Người bị hỏi (Spotlight Player)
+    if (isSpotlight) {
       if (step === "speak") {
         return (
           <TurnSpeak
@@ -254,41 +266,7 @@ export function PlayRoom({ code }: { code: string }) {
       );
     }
 
-    // ── Người còn lại: bỏ phiếu, không ai ngồi không ──────────────────────
-    if (room.phase === "reveal") {
-      if (!myVote) {
-        return (
-          <PhoneWait
-            label={`VÒNG ${round.index}`}
-            title={<>CHỐT RỒI</>}
-            line={
-              round.outcome === "immune"
-                ? `${spotlight?.name} dùng quyền miễn trừ.`
-                : round.outcome === "skipped"
-                  ? `${spotlight?.name} né. Chờ vòng sau.`
-                  : `${tin}–${doi}. Chờ vòng sau.`
-            }
-          />
-        );
-      }
-      const correct = liar ? myVote.value === "doi" : myVote.value === "tin";
-      return (
-        <>
-          <VoteHeader spotlight={spotlight} question={round.question} />
-          <VoteResult
-            correct={correct}
-            line={`${doi}–${tin}. ${spotlight?.name ?? "Người đó"} ${
-              liar ? "uống 2 ngụm" : "thoát"
-            }. Bạn soi ${correct ? "đúng" : "hụt"}.`}
-            onTroll={(label) => {
-              void send({ t: "troll", playerId: player.id, label });
-              say(`“${label}” lên màn hình lớn`);
-            }}
-          />
-        </>
-      );
-    }
-
+    // Những người chơi còn lại: Bỏ phiếu trên điện thoại
     return (
       <>
         <VoteHeader spotlight={spotlight} question={round.question} />
@@ -304,9 +282,10 @@ export function PlayRoom({ code }: { code: string }) {
   })();
 
   return (
-    <PhoneShell>
-      {body}
+    <>
+      <PhoneShell>{body}</PhoneShell>
+      <TrollLayer trolls={room.trolls} />
       <Toast value={toast} />
-    </PhoneShell>
+    </>
   );
 }

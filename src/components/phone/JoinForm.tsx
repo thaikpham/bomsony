@@ -117,7 +117,7 @@ export function JoinForm({ initialCode = "" }: { initialCode?: string }) {
           }}
           className="flex h-[56px] shrink-0 items-center justify-center rounded-sub border border-line bg-surface text-[17px] font-black text-accent active:scale-95 transition-transform"
         >
-          🖥️ TẠO PHÒNG MỚI (HOST)
+          📱 TẠO PHÒNG MỚI
         </button>
       </div>
 

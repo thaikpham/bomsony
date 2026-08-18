@@ -3,8 +3,8 @@ import { createRoom } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-/** Mở `/host` là mở một phòng mới — mã phòng có ngay để QR dựng được. */
+/** Mở `/host` hoặc bấm Tạo phòng ➔ Tạo ngay phòng mới và vào thẳng game trên điện thoại. */
 export default function NewHostRoom() {
   const room = createRoom();
-  redirect(`/host/${room.code}`);
+  redirect(`/j/${room.code}`);
 }
