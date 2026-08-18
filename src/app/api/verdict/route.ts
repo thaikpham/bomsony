@@ -50,6 +50,7 @@ const SCHEMA = {
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
     playerId?: string;
+    playerName?: string;
     zodiac?: string;
     lifePath?: number;
     round?: number;
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
   const zodiac = body.zodiac ?? "BỌ CẠP";
   const lifePath = body.lifePath ?? 8;
   const round = body.round ?? 1;
-  const key = `${zodiac}|${lifePath}|${round}|${body.rage ? "rage" : ""}`;
+  const key = `${body.playerName ?? ""}|${zodiac}|${lifePath}|${round}|${body.rage ? "rage" : ""}`;
 
   const cached = cache.get(key);
   if (cached) return NextResponse.json({ verdict: cached, source: "cache" });
@@ -68,6 +69,7 @@ export async function POST(req: Request) {
   const fallback = (): VerdictPayload => {
     const v = makeVerdict({
       playerId: body.playerId ?? "x",
+      name: body.playerName,
       zodiac,
       lifePath,
       round,
@@ -79,6 +81,7 @@ export async function POST(req: Request) {
   if (process.env.GEMINI_API_KEY) {
     const verdict = await getVerdictAI({
       playerId: body.playerId ?? "x",
+      playerName: body.playerName,
       zodiac,
       lifePath,
       round,

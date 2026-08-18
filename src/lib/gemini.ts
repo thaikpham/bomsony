@@ -68,15 +68,17 @@ async function callGeminiJSON<T>(prompt: string, systemInstruction: string): Pro
   return null;
 }
 
-/** Engine Chế độ 1 — Số trời đã định: AI sinh lời phán cho từng người. */
+/** Engine Chế độ 1 — Số trời đã định: AI sinh lời phán bựa cho từng người. */
 export async function getVerdictAI(input: {
   playerId: string;
+  playerName?: string;
   zodiac: string | null;
   lifePath: number | null;
   round: number;
   bannedTopics?: string[];
   rage?: boolean;
 }): Promise<AIVerdict> {
+  const name = input.playerName ?? "Bợm";
   const zodiac = input.zodiac ?? "BỌ CẠP";
   const lifePath = input.lifePath ?? 8;
   const round = input.round;
@@ -84,9 +86,9 @@ export async function getVerdictAI(input: {
     ? `Chủ đề cấm tuyệt đối: ${input.bannedTopics.join(", ")}.`
     : "Không có chủ đề cấm.";
 
-  const prompt = `Vòng ${round}. Cung ${zodiac}, số chủ đạo ${lifePath}. ${banned}${
-    input.rage ? " Đây là vòng Thầy Phán nổi giận — án nặng hơn bình thường." : ""
-  } Phán mức uống cho người này. Trả về đúng định dạng JSON: {"dose": 100|50|25, "label": "CẠN LY"|"NỬA LY"|"NHẤP MÔI", "line": "lời phán ≤ 12 từ", "reason": "lý do hài hước Thầy phán giải thích tại sao phải uống mức này dựa vào cung hoàng đạo hoặc số chủ đạo ≤ 15 từ"}`;
+  const prompt = `Vòng ${round}. Người chơi tên "${name}", Cung ${zodiac}, Số chủ đạo ${lifePath}. ${banned}${
+    input.rage ? " Đây là vòng Thầy Phán nổi giận — án nặng x2." : ""
+  } Phán bựa mức uống cho ${name}. Trả về JSON: {"dose": 100|50|25, "label": "CẠN LY"|"NỬA LY"|"NHẤP MÔI", "line": "lời phán bựa ≤ 12 từ gọi tên ${name}", "reason": "lý do hài hước xéo xắt Thầy phán giải thích vì sao ${name} bị uống mức này ≤ 15 từ"}`;
 
   const aiResult = await callGeminiJSON<AIVerdict>(prompt, SYSTEM_VERDICT);
   if (aiResult && [100, 50, 25].includes(aiResult.dose) && aiResult.line) {
@@ -101,6 +103,7 @@ export async function getVerdictAI(input: {
   // Fallback offline mượt mà
   const v = makeVerdict({
     playerId: input.playerId,
+    name,
     zodiac: input.zodiac,
     lifePath: input.lifePath,
     round: input.round,

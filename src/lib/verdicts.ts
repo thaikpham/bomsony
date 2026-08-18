@@ -16,34 +16,50 @@ import { DOSE_LABEL } from "./types";
 
 const LINES: Record<Dose, string[]> = {
   100: [
-    "Gan to thì trả giá.",
-    "Sao {zodiac} đang cháy. Cạn đi.",
-    "Số {num} là số nợ. Trả luôn.",
-    "Thầy xem kỹ rồi. Hết đường lùi.",
-    "{zodiac} mà im lặng? Không tin. Cạn.",
-    "Vía nặng quá. Một ly cho nhẹ.",
-    "Số {num} tối nay đứng đầu bảng nợ.",
-    "Nói nhiều quá, thầy phạt cho vui.",
+    "{name} gáy to quá, Thầy ngứa tai. Cạn 100%!",
+    "Sao {zodiac} đang cháy rực. {name} cạn ngay cho nóng!",
+    "{name} mang số {num} tối nay đứng đầu bảng nợ. Cạn 100%!",
+    "Nhìn mặt {name} là thấy nghi gian dối. Phạt CẠN LY!",
+    "{zodiac} mà định ngâm ly? Không bao giờ. Uống 100%!",
+    "Vía {name} nặng quá. Cạn 1 ly cho nhẹ bớt cái nết!",
+    "Số {num} của {name} bị đại hao chiếu mệnh. Cạn luôn!",
+    "{name} cười tươi quá, Thầy ngứa mắt. Phạt CẠN LY 100%!",
   ],
   50: [
-    "Sao xấu, miệng to.",
-    "{zodiac} hôm nay lệch trục. Nửa ly.",
-    "Số {num} còn cứu được. Nửa thôi.",
-    "Thầy thấy cái mặt là biết. Nửa ly.",
-    "Chưa tới mức cạn, nhưng đừng mừng.",
-    "Vía {zodiac} lửng lơ. Uống nửa cho đều.",
-    "Số {num} nợ thầy một nửa.",
-    "Nửa ly. Còn nửa để dành vòng sau.",
+    "{name} cung {zodiac} hôm nay lệch trục nhẹ. Nửa ly!",
+    "Số {num} của {name} còn thương được. Uống 50% thôi!",
+    "Thầy thấy {name} hơi rén rồi. Nửa ly làm nhát!",
+    "Chưa tới mức cạn, nhưng {name} đừng có mừng thầm!",
+    "Vía {zodiac} của {name} lửng lơ. Uống nửa ly cho đều!",
+    "{name} nợ Thầy một nửa. Uống 50% rồi tính tiếp!",
+    "Nửa ly cho {name}. Còn nửa để dành tí phạt tiếp!",
   ],
   25: [
-    "Thầy nể mặt lần này.",
-    "{zodiac} gặp may. Nhấp môi thôi.",
-    "Số {num} hợp vía thầy. Tha.",
-    "Nhẹ tay. Đừng quen.",
-    "Sao chiếu mờ. Nhấp một cái.",
-    "Thầy đang vui. Nhấp môi rồi ngồi xuống.",
-    "Số {num} sạch nợ. Tạm thế.",
-    "Lần này thoát. Vòng sau chưa chắc.",
+    "Thầy nể mặt {name} lần này. Nhấp môi 25%!",
+    "{name} cung {zodiac} gặp may. Nhấp một miếng làm màu!",
+    "Số {num} của {name} hợp vía Thầy. Phạt nhẹ 25%!",
+    "Nhẹ tay cho {name}. Đừng có quen nết!",
+    "Thầy đang vui nên {name} chỉ cần nhấp môi rồi ngồi xuống!",
+    "Vía {name} hôm nay sạch nợ. Tạm tha nhấp môi!",
+  ],
+};
+
+const REASONS: Record<Dose, string[]> = {
+  100: [
+    "Vì {name} cung {zodiac} số {num} vướng sao xui chiếu thẳng, không cạn ly không giải được hạn!",
+    "Vì năng lượng số {num} của {name} hôm nay quá lố, phải cạn 100% để hạ hỏa!",
+    "Vì tử vi {zodiac} của {name} vướng góc xung chiếu, cạn ly ngay để tẩy uế!",
+    "Vì {name} gáy quá hăng từ đầu trận, Thầy phải dằn mặt bằng 100%!",
+  ],
+  50: [
+    "Vì số {num} thần số học của {name} đang lửng lơ nửa chừng, cạn 50% cho cân bằng âm dương!",
+    "Vì cung {zodiac} của {name} âm khí vừa đủ, uống nửa ly để tích thêm vận may!",
+    "Vì vướng nửa hạn nhỏ, Thầy thương tình cho {name} gánh một nửa!",
+  ],
+  25: [
+    "Vì {name} cung {zodiac} được sao Hồng Loan chiếu mệnh, Thầy nể mặt cho nhấp môi 25%!",
+    "Vì số {num} hôm nay có quý nhân gánh nợ giúp {name}, chỉ cần nhấp chút làm phép!",
+    "Vì vía {name} hôm nay siêu lành, Thầy nhẹ tay cho nhấp môi 25%!",
   ],
 };
 
@@ -74,44 +90,30 @@ export function rollDose(
 
 export function judgeLine(
   dose: Dose,
+  name: string,
   zodiac: string,
   lifePath: number,
   round: number,
 ): string {
   const pool = LINES[dose];
-  return pool[hash("line", zodiac, lifePath, round, dose) % pool.length]
-    .replace("{zodiac}", zodiac)
-    .replace("{num}", String(lifePath));
+  return pool[hash("line", name, zodiac, lifePath, round, dose) % pool.length]
+    .replace(/{name}/g, name)
+    .replace(/{zodiac}/g, zodiac)
+    .replace(/{num}/g, String(lifePath));
 }
-
-const REASONS: Record<Dose, string[]> = {
-  100: [
-    "Vì cung {zodiac} số {num} vướng sao xui chiếu thẳng, không cạn ly không giải được hạn!",
-    "Vì năng lượng số {num} hôm nay quá lố, phải cạn 100% để hạ hỏa!",
-    "Vì tử vi {zodiac} vướng góc xung chiếu, cạn ly ngay để tẩy uế!",
-  ],
-  50: [
-    "Vì số {num} thần số học đang lửng lơ nửa chừng, cạn 50% cho cân bằng âm dương!",
-    "Vì cung {zodiac} âm khí vừa đủ, uống nửa ly để tích thêm vận may!",
-    "Vì vướng nửa hạn nhỏ, Thầy thương tình cho gánh một nửa!",
-  ],
-  25: [
-    "Vì {zodiac} được sao Hồng Loan chiếu mệnh, Thầy nể mặt cho nhấp môi 25%!",
-    "Vì số {num} hôm nay có quý nhân gánh nợ, chỉ cần nhấp chút làm phép!",
-    "Vì vía {zodiac} hôm nay siêu lành, Thầy nhẹ tay cho nhấp môi!",
-  ],
-};
 
 export function judgeReason(
   dose: Dose,
+  name: string,
   zodiac: string,
   lifePath: number,
   round: number,
 ): string {
   const pool = REASONS[dose];
-  return pool[hash("reason", zodiac, lifePath, round, dose) % pool.length]
-    .replace("{zodiac}", zodiac)
-    .replace("{num}", String(lifePath));
+  return pool[hash("reason", name, zodiac, lifePath, round, dose) % pool.length]
+    .replace(/{name}/g, name)
+    .replace(/{zodiac}/g, zodiac)
+    .replace(/{num}/g, String(lifePath));
 }
 
 const TASKS_BY_NUM: Record<number, string> = {
@@ -123,12 +125,14 @@ const TASKS_BY_NUM: Record<number, string> = {
 
 export function makeVerdict(input: {
   playerId: string;
+  name?: string;
   zodiac: string | null;
   lifePath: number | null;
   round: number;
   /** Vòng "Thầy Phán nổi giận" — ×2 án của tất cả mọi người. */
   rage?: boolean;
 }): Verdict {
+  const name = input.name ?? "Bợm";
   const zodiac = input.zodiac ?? "VÔ DANH";
   const lifePath = input.lifePath ?? 0;
   let dose = rollDose(zodiac, lifePath, input.round);
@@ -145,8 +149,8 @@ export function makeVerdict(input: {
     playerId: input.playerId,
     dose,
     label: DOSE_LABEL(dose),
-    line: judgeLine(dose, zodiac, lifePath, input.round),
-    reason: judgeReason(dose, zodiac, lifePath, input.round),
+    line: judgeLine(dose, name, zodiac, lifePath, input.round),
+    reason: judgeReason(dose, name, zodiac, lifePath, input.round),
     task,
     chainNote,
     drunk: false,
