@@ -93,8 +93,6 @@
   }
 }
 
-/* Reset phải nằm trong @layer base — để ngoài layer thì nó thắng cả utility
-   của Tailwind, và mọi `bg-*` / `p-*` / `border-*` trên <button> im lặng biến mất. */
 @layer base {
   html,
   body {
@@ -108,6 +106,7 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   button {
@@ -119,19 +118,19 @@
     text-align: inherit;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   input {
     font: inherit;
     color: inherit;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 }
 
 @layer components {
-  /* ── 4 cỡ chữ. Không thêm cỡ mới. ──────────────────────────
-     line-height ≥ 1.12 cho chữ Việt — dấu chữ hoa (Ẻ Ơ Ố Ầ Ợ)
-     cần chỗ phía trên. Chỉ chữ số + % mới được nén dưới 1.0. */
   .t-display {
     font-weight: 900;
     font-size: 96px;
@@ -155,7 +154,6 @@
     letter-spacing: 0.18em;
     text-transform: uppercase;
   }
-  /* Chỉ dùng cho khối toàn chữ số (150%, 2, 5.0) — không dùng cho chữ Việt. */
   .t-numeral {
     font-weight: 900;
     line-height: 0.82;
@@ -174,6 +172,9 @@
     transition:
       transform 0.1s ease,
       box-shadow 0.1s ease;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .btn-chunk:active:not(:disabled) {
     transform: translateY(6px);
@@ -192,6 +193,9 @@
     font-weight: 900;
     cursor: pointer;
     transition: transform 0.12s cubic-bezier(0.3, 1.6, 0.5, 1);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .btn-soft:active {
     transform: scale(0.94);
@@ -199,6 +203,9 @@
   .card-soft {
     cursor: pointer;
     transition: transform 0.14s cubic-bezier(0.3, 1.5, 0.5, 1);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .card-soft:active {
     transform: scale(0.98);

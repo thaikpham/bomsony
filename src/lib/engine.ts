@@ -2,6 +2,7 @@ import {
   DEFAULT_BANNED,
   DOSE_LABEL,
   GLASSES_PER_SIP,
+  getHostPlayer,
   type Dose,
   type Mode,
   type Player,
@@ -494,7 +495,8 @@ export function apply(room: Room, a: Action): Room {
     }
 
     case "endGame": {
-      if (a.playerId && room.players[0] && room.players[0].id !== a.playerId) {
+      const activeHost = getHostPlayer(room);
+      if (a.playerId && activeHost && activeHost.id !== a.playerId) {
         reject("Chỉ chủ phòng mới có quyền kết thúc trận đấu!");
       }
       room.phase = "final";
@@ -529,6 +531,9 @@ export function apply(room: Room, a: Action): Room {
     }
   }
 
+  // Tự động tính & cập nhật hostId cho toàn phòng
+  const currentHost = getHostPlayer(room);
+  room.hostId = currentHost?.id;
   room.updatedAt = Date.now();
   return room;
 }

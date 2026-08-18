@@ -17,6 +17,8 @@ export const translations = {
     appSub: "Drinking Game Siêu Cấp",
     langName: "Tiếng Việt",
     tagline: "Vòng xoay ma quái & Truth or Drink",
+    hostBadge: "👑 CHỦ PHÒNG",
+    hostTransferred: "Chủ phòng rớt mạng ➔ {name} (Top 1 Bợm) tiếp quản quyền Chủ phòng!",
     
     // Join Form
     joinTitle: "THAM GIA BÀN NHẬU",
@@ -125,6 +127,8 @@ export const translations = {
     appSub: "Ultimate Party Drinking Game",
     langName: "English",
     tagline: "Mystic Astrology & Truth or Drink",
+    hostBadge: "👑 HOST",
+    hostTransferred: "Host disconnected ➔ {name} (Top Drinker) is now the Host!",
     
     // Join Form
     joinTitle: "JOIN THE DRINKING TABLE",

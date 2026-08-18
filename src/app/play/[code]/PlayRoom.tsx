@@ -24,7 +24,7 @@ import { useRouter } from "next/navigation";
 import { useIdentity } from "@/lib/identity";
 import { useRoom } from "@/lib/useRoom";
 import { useLanguage } from "@/lib/i18n";
-import type { VoteValue, Mode, Player, Verdict, Vote } from "@/lib/types";
+import { getHostPlayer, type VoteValue, type Mode, type Player, type Verdict, type Vote } from "@/lib/types";
 import { LeaderboardModal } from "@/components/phone/LeaderboardModal";
 
 type Step = "auto" | "push" | "speak" | "judged";
@@ -47,6 +47,21 @@ export function PlayRoom({ code }: { code: string }) {
       void send({ t: "presence", playerId: me.id, connected: true });
     }
   }, [me, room, send]);
+
+  const activeHost = useMemo(() => getHostPlayer(room), [room]);
+  const isHost = activeHost?.id === me?.id;
+
+  // Tự động thông báo khi có chuyển giao quyền Chủ phòng
+  const prevHostIdRef = useRef<string | undefined>(room?.hostId);
+  useEffect(() => {
+    if (room?.hostId && prevHostIdRef.current && room.hostId !== prevHostIdRef.current) {
+      const newHost = room.players.find((p: Player) => p.id === room.hostId);
+      if (newHost) {
+        say(t("hostTransferred", { name: newHost.name }));
+      }
+    }
+    prevHostIdRef.current = room?.hostId;
+  }, [room?.hostId, room?.players, say, t]);
 
   const round = room?.current ?? null;
 
@@ -315,38 +330,45 @@ export function PlayRoom({ code }: { code: string }) {
   return (
     <>
       <PhoneShell>
-        <div className="flex shrink-0 items-center justify-between border-b border-line/40 pb-2 mb-1 gap-2">
-          <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center justify-between border-b border-line/40 pb-2 mb-1 gap-1.5 select-none">
+          <div className="flex items-center gap-1.5 min-w-0">
             {room.phase === "round" || room.phase === "reveal" ? (
-              <span className="t-label text-accent">{t("round")} {round?.index}</span>
+              <span className="t-label text-accent font-black shrink-0 whitespace-nowrap">{t("round")} {round?.index}</span>
             ) : (
-              <span className="t-label text-accent font-bold">BỢM SONY</span>
+              <span className="t-label text-accent font-bold shrink-0 whitespace-nowrap">BỢM SONY</span>
             )}
+
+            {isHost ? (
+              <span className="rounded-sub border border-accent/60 bg-accent text-ink px-1.5 py-0.5 text-[10px] font-black shrink-0 whitespace-nowrap animate-[bsPop_0.3s_ease_both]">
+                {t("hostBadge")}
+              </span>
+            ) : null}
+
             <button
               type="button"
               onClick={() => {
                 vibrate(HAPTIC.chip);
                 setShowLeaderboard(true);
               }}
-              className="rounded-sub border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-black text-accent active:scale-95 transition-transform"
+              className="h-[36px] rounded-sub border border-accent/40 bg-accent/10 px-2 py-1 text-[11px] font-black text-accent active:scale-95 transition-all duration-150 touch-manipulation select-none flex items-center gap-0.5 shrink-0 whitespace-nowrap"
             >
-              📊 {lang === "en" ? "RANKS" : "BXH"}
+              📊 <span>{lang === "en" ? "RANKS" : "BXH"}</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <LanguageToggle />
             {room.phase === "round" || room.phase === "reveal" ? (
-              room.players[0]?.id === player.id ? (
+              isHost ? (
                 <button
                   type="button"
                   onClick={() => {
                     vibrate(HAPTIC.sub);
                     void send({ t: "endGame", playerId: player.id });
                   }}
-                  className="rounded-sub border border-danger/40 bg-danger-surface px-2 py-0.5 text-[11px] font-black text-danger-text active:scale-95 transition-transform"
+                  className="h-[36px] rounded-sub border border-danger/40 bg-danger-surface px-2 py-1 text-[11px] font-black text-danger-text active:scale-95 transition-all duration-150 touch-manipulation select-none flex items-center gap-1 whitespace-nowrap"
                 >
-                  👑 {t("endGameBtn")}
+                  👑 <span>{lang === "en" ? "END" : "KẾT THÚC"}</span>
                 </button>
               ) : (
                 <button
@@ -356,9 +378,9 @@ export function PlayRoom({ code }: { code: string }) {
                     void send({ t: "leave", playerId: player.id });
                     router.push("/");
                   }}
-                  className="rounded-sub border border-line bg-surface px-2 py-0.5 text-[11px] font-black text-text-dim active:scale-95 transition-transform"
+                  className="h-[36px] rounded-sub border border-line bg-surface px-2 py-1 text-[11px] font-black text-text-dim active:scale-95 transition-all duration-150 touch-manipulation select-none flex items-center gap-1 whitespace-nowrap"
                 >
-                  🚪 {lang === "en" ? "LEAVE" : "RỜI"}
+                  🚪 <span>{lang === "en" ? "LEAVE" : "RỜI"}</span>
                 </button>
               )
             ) : null}

@@ -116,11 +116,36 @@ export type Room = {
   trolls: Troll[];
   /** Thanh nổi giận của Thầy Phán (0 đến 100). */
   rageGauge: number;
+  /** ID của người đang giữ quyền Chủ Phòng (Host) */
+  hostId?: string;
   /** Câu đã dùng — không hỏi lại. */
   usedQuestions: string[];
   createdAt: number;
   updatedAt: number;
 };
+
+/**
+ * Tìm người đang giữ quyền Chủ phòng (Host):
+ * 1. Nếu người tạo phòng (room.players[0]) đang online -> làm Host.
+ * 2. Nếu người tạo phòng rớt mạng -> tự động chuyển quyền Host cho người đang online uống nhiều nhất trên BXH.
+ */
+export function getHostPlayer(room: Room | null): Player | null {
+  if (!room || room.players.length === 0) return null;
+
+  const creator = room.players[0];
+  if (creator && creator.connected) return creator;
+
+  const connected = room.players.filter((p) => p.connected);
+  if (connected.length === 0) return creator || null;
+
+  const sorted = [...connected].sort((a, b) => {
+    if (b.totalGlasses !== a.totalGlasses) return b.totalGlasses - a.totalGlasses;
+    if (b.detectivePoints !== a.detectivePoints) return b.detectivePoints - a.detectivePoints;
+    return a.joinedAt - b.joinedAt;
+  });
+
+  return sorted[0] || null;
+}
 
 /** Chủ đề cấm — cả bàn gạch trước khi vào Truth or Drink. */
 export const SAFETY_TOPICS = [

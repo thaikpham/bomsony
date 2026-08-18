@@ -5,37 +5,19 @@ import { useLanguage } from "@/lib/i18n";
 export function LanguageToggle({ className = "" }: { className?: string }) {
   const { lang, setLang } = useLanguage();
 
-  return (
-    <div
-      className={`inline-flex items-center p-1 rounded-full bg-surface-card border border-white/10 backdrop-blur-md shadow-lg text-xs font-semibold ${className}`}
-    >
-      <button
-        type="button"
-        onClick={() => setLang("vi")}
-        className={`px-2.5 py-1 rounded-full transition-all duration-200 flex items-center gap-1.5 ${
-          lang === "vi"
-            ? "bg-accent text-white shadow-md font-bold scale-105"
-            : "text-text-dim hover:text-white"
-        }`}
-        title="Tiếng Việt"
-      >
-        <span>🇻🇳</span>
-        <span>VI</span>
-      </button>
+  const toggleLanguage = () => {
+    setLang(lang === "vi" ? "en" : "vi");
+  };
 
-      <button
-        type="button"
-        onClick={() => setLang("en")}
-        className={`px-2.5 py-1 rounded-full transition-all duration-200 flex items-center gap-1.5 ${
-          lang === "en"
-            ? "bg-accent text-white shadow-md font-bold scale-105"
-            : "text-text-dim hover:text-white"
-        }`}
-        title="English"
-      >
-        <span>🇬🇧</span>
-        <span>EN</span>
-      </button>
-    </div>
+  return (
+    <button
+      type="button"
+      onClick={toggleLanguage}
+      title={lang === "vi" ? "Đổi sang Tiếng Anh (English)" : "Switch to Vietnamese (Tiếng Việt)"}
+      className={`h-[38px] px-2.5 rounded-full border border-line bg-surface/90 text-text shadow-md flex items-center gap-1 font-black text-[12px] active:scale-95 transition-all duration-150 select-none touch-manipulation hover:border-accent/40 ${className}`}
+    >
+      <span className="text-[15px]">{lang === "vi" ? "🇻🇳" : "🇬🇧"}</span>
+      <span className="tracking-wider">{lang === "vi" ? "VI" : "EN"}</span>
+    </button>
   );
 }

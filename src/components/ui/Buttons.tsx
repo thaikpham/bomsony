@@ -43,7 +43,7 @@ export function ChunkyButton({
       type="button"
       disabled={disabled}
       style={{ height, borderRadius: radius, fontSize }}
-      className={`btn-chunk w-full shrink-0 ${TONE[tone]} ${className}`}
+      className={`btn-chunk w-full shrink-0 select-none touch-manipulation active:scale-[0.98] ${TONE[tone]} ${className}`}
       onClick={() => {
         if (disabled) return;
         vibrate(haptic);
@@ -75,7 +75,7 @@ export function SoftButton({
     <button
       type="button"
       style={width ? { width } : undefined}
-      className={`btn-soft h-[66px] rounded-sub text-[17px] ${
+      className={`btn-soft min-h-[56px] h-[66px] rounded-sub text-[17px] font-black select-none touch-manipulation ${
         danger
           ? "border border-[rgb(255_46_77/0.5)] bg-danger-surface text-danger-text"
           : "border border-line bg-surface text-text"
@@ -103,7 +103,7 @@ export function VoteButton({
   return (
     <button
       type="button"
-      className={`btn-chunk h-[132px] shrink-0 rounded-vote text-[48px] ${
+      className={`btn-chunk h-[132px] shrink-0 rounded-vote text-[44px] font-black select-none touch-manipulation ${
         tone === "safe"
           ? "bg-safe text-ink [--btn-shadow:var(--color-safe-shadow)]"
           : "bg-danger text-ink [--btn-shadow:var(--color-danger-shadow)]"
