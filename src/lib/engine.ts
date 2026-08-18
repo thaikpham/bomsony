@@ -114,26 +114,26 @@ function beginRound(room: Room, index: number, carriedQuestion?: string): void {
     startedAt: Date.now(),
   };
 
-  // Vòng tính theo phần trăm ly
-  const percentRound = mode === "que" && (type === "que" || type === "rage");
-
-  if (percentRound) {
+  // Mode 1 (Số trời đã định) — luôn sinh quẻ cho tất cả người chơi
+  if (mode === "que") {
     round.verdicts = room.players.map((p) =>
       makeVerdict({
         playerId: p.id,
+        name: p.name,
         zodiac: p.zodiac,
         lifePath: p.lifePathNumber,
         round: index,
         rage: type === "rage",
       }),
     );
-  } else if ((type === "table" || type === "wildcard") && mode === "que") {
-    round.question =
-      type === "wildcard"
-        ? "QUẺ MẬT CẢ BÀN: Ai có tháng sinh lẻ hoặc đang đeo phụ kiện ➔ Cạn ly 50%!"
-        : pickTablePrompt(room.bannedTopics, room.usedQuestions, seed);
-    room.usedQuestions.push(round.question);
+    if (type === "wildcard") {
+      round.question = "QUẺ MẬT CẢ BÀN: Ai có tháng sinh lẻ hoặc đang đeo phụ kiện ➔ Cạn ly 50%!";
+    } else if (type === "table") {
+      round.question = pickTablePrompt(room.bannedTopics, room.usedQuestions, seed);
+      room.usedQuestions.push(round.question);
+    }
   } else {
+    // Mode 2 (Truth or Drink)
     const ids = room.players.filter((p) => p.connected).map((p) => p.id);
     round.spotlightPlayerId = pickSpotlight(ids, room.current?.spotlightPlayerId ?? null);
     const q =

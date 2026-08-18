@@ -174,7 +174,14 @@ export function PlayRoom({ code }: { code: string }) {
         );
       }
       if (!myVerdict) {
-        return <PhoneWait label={`VÒNG ${round.index}`} title={<>THOÁT VÒNG NÀY</>} line="Chờ cả bàn cạn xong." />;
+        return (
+          <PhoneWait
+            label={`VÒNG ${round.index}`}
+            title={<>THOÁT VÒNG NÀY</>}
+            line="Chờ cả bàn cạn xong."
+            cta={{ text: "VÒNG TIẾP ➔", onClick: () => void send({ t: "nextRound" }) }}
+          />
+        );
       }
       if (myVerdict.drunk) {
         return (
