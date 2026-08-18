@@ -35,12 +35,12 @@ const QUE_VARIANTS: RoundType[] = ["table", "rage"];
 const TOD_VARIANTS: RoundType[] = ["reverse", "duel", "rage"];
 
 export function roundTypeFor(mode: Mode, index: number): RoundType {
-  // Biến thể chèn sau mỗi 3 vòng (vòng 4, 8, 12…), không chèn ở vòng cuối.
-  const isVariantSlot = index % 4 === 0 && index < ROUNDS_PER_GAME;
+  // Biến thể chèn sau mỗi 4 vòng (vòng 4, 8, 12…).
+  const isVariantSlot = index % 4 === 0;
   if (mode === "que") {
-    return isVariantSlot ? QUE_VARIANTS[(index / 4 - 1) % QUE_VARIANTS.length] : "que";
+    return isVariantSlot ? QUE_VARIANTS[Math.floor(index / 4 - 1) % QUE_VARIANTS.length] : "que";
   }
-  return isVariantSlot ? TOD_VARIANTS[(index / 4 - 1) % TOD_VARIANTS.length] : "tod";
+  return isVariantSlot ? TOD_VARIANTS[Math.floor(index / 4 - 1) % TOD_VARIANTS.length] : "tod";
 }
 
 /** Mức Cay chỉ mở sau vòng 7. */
@@ -50,8 +50,9 @@ export function tierFor(index: number): Tier {
   return "spicy";
 }
 
-export function isLastRound(index: number): boolean {
-  return index >= ROUNDS_PER_GAME;
+/** Không dừng tự động — chơi liên tục cho tới khi chủ phòng bấm KẾT THÚC TRẬN. */
+export function isLastRound(): boolean {
+  return false;
 }
 
 /** Chai quay: xoay vòng, ưu tiên người chưa lên thớt gần đây. */

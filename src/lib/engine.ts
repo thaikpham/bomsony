@@ -12,7 +12,6 @@ import {
 import { pickQuestions, pickTablePrompt } from "./questions";
 import {
   ROUNDS_PER_GAME,
-  isLastRound,
   pickSpotlight,
   roundTypeFor,
   tierFor,
@@ -41,6 +40,7 @@ export type Action =
   | { t: "chooseNext"; playerId: string; index: 0 | 1 }
   | { t: "troll"; playerId: string; label: string }
   | { t: "nextRound" }
+  | { t: "endGame"; playerId?: string }
   | { t: "newGame" };
 
 export class Rejected extends Error {}
@@ -450,15 +450,16 @@ export function apply(room: Room, a: Action): Room {
 
     case "nextRound": {
       if (!room.mode) reject("Chưa chọn chế độ");
-      if (isLastRound(room.round)) {
-        room.phase = "final";
-        break;
-      }
       const carried =
         r?.nextQuestionOptions && r.nextQuestionOptions[0] === r.nextQuestionOptions[1]
           ? r.nextQuestionOptions[0]
           : undefined;
       beginRound(room, room.round + 1, carried);
+      break;
+    }
+
+    case "endGame": {
+      room.phase = "final";
       break;
     }
 

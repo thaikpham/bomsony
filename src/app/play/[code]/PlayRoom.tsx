@@ -309,7 +309,24 @@ export function PlayRoom({ code }: { code: string }) {
 
   return (
     <>
-      <PhoneShell>{body}</PhoneShell>
+      <PhoneShell>
+        {room.phase === "round" || room.phase === "reveal" ? (
+          <div className="flex shrink-0 items-center justify-between border-b border-line/40 pb-2 mb-1">
+            <div className="t-label text-accent">VÒNG {round?.index}</div>
+            <button
+              type="button"
+              onClick={() => {
+                vibrate(HAPTIC.sub);
+                void send({ t: "endGame", playerId: player.id });
+              }}
+              className="rounded-sub border border-danger/40 bg-danger-surface px-2.5 py-1 text-[12px] font-black text-danger-text active:scale-95 transition-transform"
+            >
+              🏁 KẾT THÚC TRẬN
+            </button>
+          </div>
+        ) : null}
+        {body}
+      </PhoneShell>
       <TrollLayer trolls={room.trolls} />
       <Toast value={toast} />
     </>
