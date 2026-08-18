@@ -1,5 +1,7 @@
 /** Cung hoàng đạo + số chủ đạo thần số học — suy ra 1 lần khi join. */
 
+import type { Language } from "./i18n";
+
 const SIGNS: { name: string; until: [number, number] }[] = [
   { name: "MA KẾT", until: [1, 19] },
   { name: "BẢO BÌNH", until: [2, 18] },
@@ -14,6 +16,27 @@ const SIGNS: { name: string; until: [number, number] }[] = [
   { name: "BỌ CẠP", until: [11, 21] },
   { name: "NHÂN MÃ", until: [12, 21] },
 ];
+
+export const ZODIAC_EN: Record<string, string> = {
+  "MA KẾT": "Capricorn",
+  "BẢO BÌNH": "Aquarius",
+  "SONG NGƯ": "Pisces",
+  "BẠCH DƯƠNG": "Aries",
+  "KIM NGƯU": "Taurus",
+  "SONG TỬ": "Gemini",
+  "CỰ GIẢI": "Cancer",
+  "SƯ TỬ": "Leo",
+  "XỬ NỮ": "Virgo",
+  "THIÊN BÌNH": "Libra",
+  "BỌ CẠP": "Scorpio",
+  "NHÂN MÃ": "Sagittarius",
+};
+
+export function getZodiacName(sign: string | null, lang: Language = "vi"): string {
+  if (!sign) return lang === "en" ? "Unknown" : "VÔ DANH";
+  if (lang === "en") return ZODIAC_EN[sign] || sign;
+  return sign;
+}
 
 /** @param iso yyyy-mm-dd */
 export function zodiacOf(iso: string): string {

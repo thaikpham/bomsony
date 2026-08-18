@@ -1,18 +1,6 @@
 import type { Dose, Verdict } from "./types";
 import { DOSE_LABEL } from "./types";
-
-/**
- * Thầy Phán — bộ lời phán dựng sẵn.
- *
- * README gợi ý cache theo (zodiac, lifePathNumber, round) hoặc pre-generate sẵn
- * một bộ lớn rồi random: người chơi không cần AI thật-thời-gian, chỉ cần cảm
- * giác ngẫu nhiên. Đây là bộ đó — chạy được offline, không tốn token, không
- * bao giờ để API key ra client. Muốn dùng Claude thật thì bật
- * `ANTHROPIC_API_KEY` (xem `src/app/api/verdict/route.ts`); bộ này là fallback.
- *
- * Ràng buộc: ≤ 12 từ · giọng ra lệnh, không giải thích · không đụng ngoại hình,
- * gia đình, giới tính, tôn giáo · trần là 100% = 1 ly, không bao giờ hơn.
- */
+import { ZODIAC_EN } from "./zodiac";
 
 const LINES: Record<Dose, string[]> = {
   100: [
@@ -44,6 +32,36 @@ const LINES: Record<Dose, string[]> = {
   ],
 };
 
+const LINES_EN: Record<Dose, string[]> = {
+  100: [
+    "{name} is bragging too loudly. Bottoms up 100%!",
+    "{zodiac} is burning hot. {name}, drink up 100% now!",
+    "{name} with Life Path {num} tops the debt list tonight. Bottoms up!",
+    "{name} looks suspicious! Penalty: BOTTOMS UP!",
+    "Can a {zodiac} hold back? Never! Drink 100%!",
+    "{name}'s aura is too heavy. Finish a full glass!",
+    "Life Path {num} faces bad luck tonight. Finish the glass!",
+    "{name} is smiling too much. Penalty: BOTTOMS UP 100%!",
+  ],
+  50: [
+    "{name} ({zodiac}) is slightly misaligned today. Half glass!",
+    "Life Path {num} shows mercy. Drink 50% only!",
+    "The Oracle sees {name} hesitating. Take a half glass!",
+    "Not a full glass yet, but don't celebrate too early, {name}!",
+    "{zodiac} energy for {name} is floating. Drink half a glass!",
+    "{name} owes the Oracle half. Drink 50% now!",
+    "Half a glass for {name}. Save the rest for next time!",
+  ],
+  25: [
+    "The Oracle gives {name} a break this time. Sip 25%!",
+    "{name} ({zodiac}) got lucky! Take a tiny sip!",
+    "Life Path {num} pleases the Oracle. Gentle penalty: 25% sip!",
+    "Easy on {name} this time. Don't make it a habit!",
+    "The Oracle is generous: {name} just take a sip and sit!",
+    "{name}'s debt is cleared today. Forgiven with a sip!",
+  ],
+};
+
 const REASONS: Record<Dose, string[]> = {
   100: [
     "Vì {name} cung {zodiac} số {num} vướng sao xui chiếu thẳng, không cạn ly không giải được hạn!",
@@ -63,7 +81,25 @@ const REASONS: Record<Dose, string[]> = {
   ],
 };
 
-/** Hash ổn định — cùng (zodiac, num, round) ra cùng lời phán. */
+const REASONS_EN: Record<Dose, string[]> = {
+  100: [
+    "Because {name} ({zodiac}, Life Path {num}) is aligned with bad stars. Full glass is mandatory!",
+    "Because Life Path {num} energy is too chaotic today, drink 100% to cool down!",
+    "Because {zodiac} astrology faces a harsh clash, drink up to cleanse!",
+    "Because {name} talked big early on, the Oracle demands 100% penalty!",
+  ],
+  50: [
+    "Because Life Path {num} is stuck midway, drink 50% to balance your cosmic energy!",
+    "Because {zodiac} energy needs a slight boost, take half a glass for good fortune!",
+    "Because of a minor unlucky alignment, the Oracle lets {name} off with 50%!",
+  ],
+  25: [
+    "Because {zodiac} is blessed by lucky stars tonight, take a 25% sip!",
+    "Because Life Path {num} brings a guardian angel to shield {name}, just a sip is required!",
+    "Because {name}'s karma is spotless tonight, take an easy 25% sip!",
+  ],
+};
+
 function hash(...parts: (string | number)[]): number {
   let h = 2166136261;
   const s = parts.join("|");
@@ -74,7 +110,6 @@ function hash(...parts: (string | number)[]): number {
   return Math.abs(h);
 }
 
-/** Vòng 1–2 làm nóng: chỉ 25–50%. Từ vòng 3 mở 100%. */
 export function rollDose(
   zodiac: string,
   lifePath: number,
@@ -94,11 +129,13 @@ export function judgeLine(
   zodiac: string,
   lifePath: number,
   round: number,
+  lang: "vi" | "en" = "vi",
 ): string {
-  const pool = LINES[dose];
+  const pool = lang === "en" ? LINES_EN[dose] : LINES[dose];
+  const zName = lang === "en" ? (ZODIAC_EN[zodiac] || zodiac) : zodiac;
   return pool[hash("line", name, zodiac, lifePath, round, dose) % pool.length]
     .replace(/{name}/g, name)
-    .replace(/{zodiac}/g, zodiac)
+    .replace(/{zodiac}/g, zName)
     .replace(/{num}/g, String(lifePath));
 }
 
@@ -108,11 +145,13 @@ export function judgeReason(
   zodiac: string,
   lifePath: number,
   round: number,
+  lang: "vi" | "en" = "vi",
 ): string {
-  const pool = REASONS[dose];
+  const pool = lang === "en" ? REASONS_EN[dose] : REASONS[dose];
+  const zName = lang === "en" ? (ZODIAC_EN[zodiac] || zodiac) : zodiac;
   return pool[hash("reason", name, zodiac, lifePath, round, dose) % pool.length]
     .replace(/{name}/g, name)
-    .replace(/{zodiac}/g, zodiac)
+    .replace(/{zodiac}/g, zName)
     .replace(/{num}/g, String(lifePath));
 }
 
@@ -123,13 +162,19 @@ const TASKS_BY_NUM: Record<number, string> = {
   9: "Vừa hô 'DZÔ' vừa nâng ly!",
 };
 
+const TASKS_BY_NUM_EN: Record<number, string> = {
+  1: "Shout 'Bợm Sony rulez!' before drinking!",
+  7: "Whisper the verdict to the person on your left!",
+  8: "Nominate 1 friend to drink with you in celebration!",
+  9: "Shout 'CHEERS!' while raising your glass!",
+};
+
 export function makeVerdict(input: {
   playerId: string;
   name?: string;
   zodiac: string | null;
   lifePath: number | null;
   round: number;
-  /** Vòng "Thầy Phán nổi giận" — ×2 án của tất cả mọi người. */
   rage?: boolean;
 }): Verdict {
   const name = input.name ?? "Bợm";
@@ -140,30 +185,38 @@ export function makeVerdict(input: {
 
   const h = hash("ext", input.playerId, input.round);
   const task = TASKS_BY_NUM[lifePath] ?? "Nhìn thẳng cả bàn, nâng ly mỉm cười!";
+  const taskEn = TASKS_BY_NUM_EN[lifePath] ?? "Look straight at the table, raise your glass and smile!";
+  
   const chainNote =
     h % 5 === 0
       ? "DÂY CHUYỀN: Nếu bạn cạn ly, người bên phải nhấp môi 25% theo!"
+      : undefined;
+  const chainNoteEn =
+    h % 5 === 0
+      ? "CHAIN REACTION: If you drink full glass, the person to your right takes a 25% sip!"
       : undefined;
 
   return {
     playerId: input.playerId,
     dose,
-    label: DOSE_LABEL(dose),
-    line: judgeLine(dose, name, zodiac, lifePath, input.round),
-    reason: judgeReason(dose, name, zodiac, lifePath, input.round),
+    label: DOSE_LABEL(dose, "vi"),
+    line: judgeLine(dose, name, zodiac, lifePath, input.round, "vi"),
+    lineEn: judgeLine(dose, name, zodiac, lifePath, input.round, "en"),
+    reason: judgeReason(dose, name, zodiac, lifePath, input.round, "vi"),
+    reasonEn: judgeReason(dose, name, zodiac, lifePath, input.round, "en"),
     task,
+    taskEn,
     chainNote,
+    chainNoteEn,
     drunk: false,
   };
 }
 
-/** Trần là 100% = 1 ly, không bao giờ hơn. */
 export function doubleDose(dose: Dose): Dose {
   if (dose === 25) return 50;
   return 100;
 }
 
-/** Gộp hai án về một trong ba mức hợp lệ. Vẫn không bao giờ quá 100%. */
 export function mergeDose(a: Dose, b: Dose): Dose {
   const sum = a + b;
   if (sum >= 75) return 100;
@@ -171,9 +224,11 @@ export function mergeDose(a: Dose, b: Dose): Dose {
   return 25;
 }
 
-/** Copy chốt trong thiết kế 4f — dùng khi án đã bị chỉnh tay. */
 export const DESIGN_LINES = {
   full: "Gan to thì trả giá.",
+  fullEn: "Pay the price for being bold.",
   half: "Sao xấu, miệng to.",
+  halfEn: "Bad stars, big mouth.",
   appealed: "Thầy nể mặt lần này.",
+  appealedEn: "The Oracle shows mercy this time.",
 };

@@ -1,14 +1,10 @@
+"use client";
+
 import type { Player, Round } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { HostFrame } from "@/components/ui/Stage";
+import { useLanguage } from "@/lib/i18n";
 
-/**
- * Host · vòng quẻ — cả bàn nhận quẻ cùng lúc.
- *
- * Handoff không có màn host cho chế độ "Số trời đã định" (chỉ có 4a/4b/4e), nên
- * đây là bản dựng theo đúng hệ thống: 3 khối, 1 màu nhấn, 1 câu văn.
- * Vòng "Thầy Phán nổi giận" đảo đỏ toàn màn theo luật đã chốt.
- */
 export function QueRound({
   round,
   players,
@@ -16,6 +12,7 @@ export function QueRound({
   round: Round;
   players: Player[];
 }) {
+  const { lang, t } = useLanguage();
   const rage = round.type === "rage";
   const byId = new Map(players.map((p) => [p.id, p]));
   const done = round.verdicts.filter((v) => v.drunk).length;
@@ -25,10 +22,10 @@ export function QueRound({
     <HostFrame className={rage ? "bg-danger text-ink" : ""}>
       <div className="flex shrink-0 items-baseline justify-between">
         <div className={`t-label ${rage ? "opacity-55" : "text-text-faint"}`}>
-          VÒNG {round.index}
+          {t("round")} {round.index}
         </div>
         <div className={`t-label ${rage ? "opacity-55" : "text-text-faint"}`}>
-          {rage ? "THẦY PHÁN NỔI GIẬN" : "SỐ TRỜI ĐÃ ĐỊNH"}
+          {rage ? t("rageRound") : t("modeQueTitle")}
         </div>
       </div>
 
@@ -59,21 +56,20 @@ export function QueRound({
 
       <div className="flex shrink-0 items-center justify-between">
         <div className={`t-body ${rage ? "opacity-70" : "text-text-dim"}`}>
-          {rage ? "Án nhân đôi. Không ai thoát." : "Thầy phán xong rồi. Uống đi."}
+          {rage ? (lang === "en" ? "Double doses. No escape!" : "Án nhân đôi. Không ai thoát.") : (lang === "en" ? "Oracle has spoken. Drink up!" : "Thầy phán xong rồi. Uống đi.")}
         </div>
         <div
           className={`t-label animate-[bsBreathe_1.6s_ease-in-out_infinite] ${
             rage ? "opacity-70" : "text-[rgb(245_243_238/0.35)]"
           }`}
         >
-          {done} / {total} ĐÃ CẠN
+          {done} / {total} {lang === "en" ? "FINISHED" : "ĐÃ CẠN"}
         </div>
       </div>
     </HostFrame>
   );
 }
 
-/** Host · biến thể "Cả bàn dính" — ai dính điều kiện thì tự bấm trên phone. */
 export function TableRound({
   round,
   players,
@@ -81,19 +77,21 @@ export function TableRound({
   round: Round;
   players: Player[];
 }) {
+  const { lang, t } = useLanguage();
   const byId = new Map(players.map((p) => [p.id, p]));
   const hit = round.verdicts.map((v) => byId.get(v.playerId)).filter(Boolean) as Player[];
+  const questionText = lang === "en" && round.questionEn ? round.questionEn : (round.question ?? "");
 
   return (
     <HostFrame>
       <div className="flex shrink-0 items-baseline justify-between">
-        <div className="t-label text-text-faint">VÒNG {round.index}</div>
-        <div className="t-label text-text-faint">CẢ BÀN DÍNH</div>
+        <div className="t-label text-text-faint">{t("round")} {round.index}</div>
+        <div className="t-label text-text-faint">{t("tableRound")}</div>
       </div>
 
       <div className="flex min-h-0 flex-1 items-center">
-        <div className="text-[56px] leading-[1.24] font-black tracking-[-0.035em] text-accent [text-wrap:pretty]">
-          {round.question}
+        <div className="text-[52px] leading-[1.24] font-black tracking-[-0.035em] text-accent [text-wrap:pretty]">
+          {questionText}
         </div>
       </div>
 
@@ -104,7 +102,7 @@ export function TableRound({
           ))}
         </div>
         <div className="t-label shrink-0 animate-[bsBreathe_1.6s_ease-in-out_infinite] text-[rgb(245_243_238/0.35)]">
-          {hit.length ? `${hit.length} DÍNH` : "AI DÍNH THÌ BẤM"}
+          {hit.length ? `${hit.length} ${lang === "en" ? "HIT" : "DÍNH"}` : (lang === "en" ? "TAP ON PHONE IF HIT" : "AI DÍNH THÌ BẤM")}
         </div>
       </div>
     </HostFrame>

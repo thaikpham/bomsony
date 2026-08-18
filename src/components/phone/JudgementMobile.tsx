@@ -3,6 +3,7 @@
 import type { Player, Round } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { HAPTIC, vibrate } from "@/lib/haptics";
+import { useLanguage } from "@/lib/i18n";
 
 export function JudgementMobile({
   round,
@@ -17,10 +18,11 @@ export function JudgementMobile({
   onTroll: (label: string) => void;
   onNextRound: () => void;
 }) {
+  const { lang } = useLanguage();
   const tin = round.votes.filter((v) => v.value === "tin").length;
   const doi = round.votes.filter((v) => v.value === "doi").length;
-  const name = spotlight?.name ?? "Người đó";
-  const nextName = next?.name ?? "Người kế";
+  const name = spotlight?.name ?? (lang === "en" ? "Player" : "Người đó");
+  const nextName = next?.name ?? (lang === "en" ? "Next player" : "Người kế");
   const reversed = round.type === "reverse";
   const rage = round.type === "rage";
   const duel = round.type === "duel";
@@ -32,41 +34,45 @@ export function JudgementMobile({
         return {
           bg: "bg-danger",
           tag: rage
-            ? `${doi} – ${tin} · THẦY PHÁN NỔI GIẬN`
+            ? `${doi} – ${tin} · ${lang === "en" ? "ORACLE RAGE" : "THẦY PHÁN NỔI GIẬN"}`
             : duel
-              ? `${doi} – ${tin} · ĐẤU TAY ĐÔI`
-              : `${doi} – ${tin} · CẢ BÀN KHÔNG TIN`,
-          title: "NÓI DỐI RÀNH RÀNH",
+              ? `${doi} – ${tin} · ${lang === "en" ? "DUEL" : "ĐẤU TAY ĐÔI"}`
+              : `${doi} – ${tin} · ${lang === "en" ? "MOSTLY LIAR VOTES" : "CẢ BÀN KHÔNG TIN"}`,
+          title: lang === "en" ? "CAUGHT LYING!" : "NÓI DỐI RÀNH RÀNH",
           sips: 2 * mult,
-          line: `${name} uống ${2 * mult} ngụm. ${nextName} ra câu tiếp.`,
+          line: lang === "en"
+            ? `${name} drinks ${2 * mult} sips. ${nextName} is up next.`
+            : `${name} uống ${2 * mult} ngụm. ${nextName} ra câu tiếp.`,
         };
       case "skipped":
         return {
           bg: "bg-accent text-ink",
-          tag: "KHÔNG DÁM KHAI",
-          title: "NÉ ĐẸP LẮM",
+          tag: lang === "en" ? "PASSED QUESTION" : "KHÔNG DÁM KHAI",
+          title: lang === "en" ? "NICE PASS" : "NÉ ĐẸP LẮM",
           sips: reversed ? 0 : 1 * mult,
           line: reversed
-            ? `Vòng ngược đời — ${name} né nên thoát.`
-            : `${name} ngụm ${1 * mult} cái. ${nextName} ra câu tiếp.`,
+            ? (lang === "en" ? `Reversed round — ${name} passed so free!` : `Vòng ngược đời — ${name} né nên thoát.`)
+            : (lang === "en" ? `${name} drinks ${1 * mult} sip. ${nextName} is up next.` : `${name} ngụm ${1 * mult} cái. ${nextName} ra câu tiếp.`),
         };
       case "immune":
         return {
           bg: "bg-ink text-text",
-          tag: "QUYỀN MIỄN TRỪ",
-          title: "THOÁT SẠCH",
+          tag: lang === "en" ? "IMMUNITY SHIELD" : "QUYỀN MIỄN TRỪ",
+          title: lang === "en" ? "COMPLETELY SAFE" : "THOÁT SẠCH",
           sips: 0,
-          line: `${name} dùng quyền miễn trừ. ${nextName} ra câu tiếp.`,
+          line: lang === "en"
+            ? `${name} used immunity shield. ${nextName} is up next.`
+            : `${name} dùng quyền miễn trừ. ${nextName} ra câu tiếp.`,
         };
       default:
         return {
           bg: "bg-safe text-ink",
-          tag: `${tin} – ${doi} · CẢ BÀN TIN`,
-          title: "THẦY TIN THẬT THÀ",
+          tag: `${tin} – ${doi} · ${lang === "en" ? "MOSTLY TRUTH VOTES" : "CẢ BÀN TIN"}`,
+          title: lang === "en" ? "HONEST TRUTH!" : "THẦY TIN THẬT THÀ",
           sips: reversed ? 1 * mult : 0,
           line: reversed
-            ? `Vòng ngược đời — thật thà thì uống. ${name} ngụm đi.`
-            : `${name} thoát! ${nextName} ra câu tiếp.`,
+            ? (lang === "en" ? `Reversed round — honest drinks! ${name} drink up.` : `Vòng ngược đời — thật thà thì uống. ${name} ngụm đi.`)
+            : (lang === "en" ? `${name} is safe! ${nextName} is up next.` : `${name} thoát! ${nextName} ra câu tiếp.`),
         };
     }
   })();
@@ -83,7 +89,7 @@ export function JudgementMobile({
           {view.sips > 0 ? (
             <>
               <div className="text-[64px] font-black leading-none">{view.sips}</div>
-              <div className="text-[18px] font-black">NGỤM</div>
+              <div className="text-[18px] font-black">{lang === "en" ? "SIP" : "NGỤM"}</div>
             </>
           ) : (
             <div className="text-[64px] font-black leading-none text-safe">✓</div>
@@ -94,7 +100,6 @@ export function JudgementMobile({
       </div>
 
       <div className="flex shrink-0 flex-col gap-3">
-        {/* Nút Chuyển vòng tiếp theo trên điện thoại */}
         <button
           type="button"
           onClick={() => {
@@ -103,12 +108,11 @@ export function JudgementMobile({
           }}
           className="flex h-[66px] w-full items-center justify-center rounded-sub bg-ink text-[22px] font-black text-accent shadow-xl active:scale-95 transition-transform"
         >
-          VÒNG TIẾP ➔
+          {lang === "en" ? "NEXT ROUND ➔" : "VÒNG TIẾP ➔"}
         </button>
 
-        {/* Hàng nút Reaction Troll gửi về cả bàn */}
         <div className="flex shrink-0 gap-2">
-          {["DZÔ!", "HÈN", "BỊA DỞ"].map((label) => (
+          {(lang === "en" ? ["CHEERS!", "COWARD", "FAKE!"] : ["DZÔ!", "HÈN", "BỊA DỞ"]).map((label) => (
             <button
               key={label}
               type="button"

@@ -17,30 +17,31 @@ import { PhoneWait, VoteChoice, VoteCount, VoteHeader } from "@/components/phone
 import { ChunkyButton } from "@/components/ui/Buttons";
 import { PhoneShell } from "@/components/ui/Stage";
 import { Toast } from "@/components/ui/Toast";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { TrollLayer } from "@/components/host/TrollLayer";
 import { HAPTIC, vibrate } from "@/lib/haptics";
 import { useRouter } from "next/navigation";
 import { useIdentity } from "@/lib/identity";
 import { useRoom } from "@/lib/useRoom";
-import type { VoteValue, Mode } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n";
+import type { VoteValue, Mode, Player, Verdict, Vote } from "@/lib/types";
 import { LeaderboardModal } from "@/components/phone/LeaderboardModal";
 
-/** Bước cục bộ trong màn hiện tại — server không cần biết. */
 type Step = "auto" | "push" | "speak" | "judged";
 
 export function PlayRoom({ code }: { code: string }) {
   const router = useRouter();
   const { room, status, toast, say, deny, send } = useRoom(code);
   const me = useIdentity();
+  const { lang, t } = useLanguage();
   const [step, setStep] = useState<Step>("auto");
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const rejoined = useRef(false);
 
-  // Reload giữa trận / rớt mạng → tự vào lại phòng, không bắt gõ tên lần nữa.
   useEffect(() => {
     if (!me || !room || rejoined.current) return;
     rejoined.current = true;
-    if (!room.players.some((p) => p.id === me.id)) {
+    if (!room.players.some((p: Player) => p.id === me.id)) {
       void send({ t: "join", playerId: me.id, name: me.name, avatarUrl: me.avatarUrl });
     } else {
       void send({ t: "presence", playerId: me.id, connected: true });
@@ -49,7 +50,6 @@ export function PlayRoom({ code }: { code: string }) {
 
   const round = room?.current ?? null;
 
-  // Vòng mới thì mọi bước cục bộ về mặc định — reset ngay trong lúc render
   const stepKey = `${room?.phase ?? ""}:${round?.index ?? 0}`;
   const [prevStepKey, setPrevStepKey] = useState(stepKey);
   if (prevStepKey !== stepKey) {
@@ -58,14 +58,14 @@ export function PlayRoom({ code }: { code: string }) {
   }
 
   const player = useMemo(
-    () => room?.players.find((p) => p.id === me?.id) ?? null,
+    () => room?.players.find((p: Player) => p.id === me?.id) ?? null,
     [room, me],
   );
 
   if (status === "gone") {
     return (
       <PhoneShell>
-        <PhoneWait label="BỢM SONY" title="PHÒNG ĐÃ TAN" line="Mở trang chủ để tạo phòng mới." />
+        <PhoneWait label="BỢM SONY" title={t("roomGone")} line="Mở trang chủ để tạo phòng mới." />
       </PhoneShell>
     );
   }
@@ -73,36 +73,38 @@ export function PlayRoom({ code }: { code: string }) {
   if (!room || !player) {
     return (
       <PhoneShell>
-        <PhoneWait label="BỢM SONY" title="ĐANG NỐI" line="Chờ một nhịp." />
+        <PhoneWait label="BỢM SONY" title={t("reconnectNotice")} line="Chờ một nhịp." />
       </PhoneShell>
     );
   }
 
   const spotlight = round?.spotlightPlayerId
-    ? (room.players.find((p) => p.id === round.spotlightPlayerId) ?? null)
+    ? (room.players.find((p: Player) => p.id === round.spotlightPlayerId) ?? null)
     : null;
-  const connected = room.players.filter((p) => p.connected);
+  const connected = room.players.filter((p: Player) => p.connected);
   const nextUp =
     spotlight && connected.length > 1
-      ? connected[(connected.findIndex((p) => p.id === spotlight.id) + 1) % connected.length]
+      ? connected[(connected.findIndex((p: Player) => p.id === spotlight.id) + 1) % connected.length]
       : null;
 
   const isSpotlight = round?.spotlightPlayerId === player.id;
-  const myVerdict = round?.verdicts.find((v) => v.playerId === player.id) ?? null;
-  const myVote = round?.votes.find((v) => v.voterId === player.id) ?? null;
-  const tin = round?.votes.filter((v) => v.value === "tin").length ?? 0;
-  const doi = round?.votes.filter((v) => v.value === "doi").length ?? 0;
+  const myVerdict = round?.verdicts.find((v: Verdict) => v.playerId === player.id) ?? null;
+  const myVote = round?.votes.find((v: Vote) => v.voterId === player.id) ?? null;
+  const tin = round?.votes.filter((v: Vote) => v.value === "tin").length ?? 0;
+  const doi = round?.votes.filter((v: Vote) => v.value === "doi").length ?? 0;
   const reversed = round?.type === "reverse";
   const rage = round?.type === "rage";
   const duel = round?.type === "duel";
 
+  const questionText = lang === "en" && round?.questionEn ? round.questionEn : (round?.question ?? "");
+  const nextQuestionOptions = (lang === "en" && round?.nextQuestionOptionsEn ? round.nextQuestionOptionsEn : round?.nextQuestionOptions) ?? null;
+
   const body = (() => {
-    // ── 1. Trước trận / Phòng chờ trên điện thoại ───────────────────────
     if (room.phase === "lobby") {
       if (room.mode === "que" && !player.birthDate) {
         return (
           <Birthdate
-            onSubmit={(iso) => {
+            onSubmit={(iso: string) => {
               vibrate(HAPTIC.sub);
               void send({ t: "setBirthDate", playerId: player.id, birthDate: iso });
             }}
@@ -120,16 +122,15 @@ export function PlayRoom({ code }: { code: string }) {
       );
     }
 
-    // ── 2. Chốt Vùng Cấm trên điện thoại ────────────────────────────────
     if (room.phase === "safety") {
       return (
         <SafetyMobile
           banned={room.bannedTopics}
-          onToggle={(topic) =>
+          onToggle={(topic: string) =>
             void send({
               t: "setSafety",
               bannedTopics: room.bannedTopics.includes(topic)
-                ? room.bannedTopics.filter((x) => x !== topic)
+                ? room.bannedTopics.filter((x: string) => x !== topic)
                 : [...room.bannedTopics, topic],
             })
           }
@@ -138,7 +139,6 @@ export function PlayRoom({ code }: { code: string }) {
       );
     }
 
-    // ── 3. Tổng kết / Podium trên điện thoại ─────────────────────────────
     if (room.phase === "final") {
       return (
         <PodiumMobile
@@ -152,25 +152,24 @@ export function PlayRoom({ code }: { code: string }) {
       return <PhoneWait label="BỢM SONY" title={<>ĐANG XẾP VÒNG</>} line="Chờ Thầy Phán." />;
     }
 
-    // ── 4. Chế độ 1 — Quẻ (Số trời đã định) ─────────────────────────────
     if (room.mode === "que") {
       if (round.type === "table" && !myVerdict) {
         return (
           <>
-            <div className="t-label shrink-0 text-accent">CẢ BÀN DÍNH</div>
+            <div className="t-label shrink-0 text-accent">{t("tableRound")}</div>
             <div className="flex min-h-0 flex-1 items-center">
-              <div className="animate-[bsPop_0.34s_cubic-bezier(0.2,1.5,0.4,1)_both] text-[40px] leading-[1.28] font-black tracking-[-0.025em] text-accent [text-wrap:pretty]">
-                {round.question}
+              <div className="animate-[bsPop_0.34s_cubic-bezier(0.2,1.5,0.4,1)_both] text-[36px] leading-[1.28] font-black tracking-[-0.025em] text-accent [text-wrap:pretty]">
+                {questionText}
               </div>
             </div>
             <ChunkyButton
               tone="danger"
               onClick={() => void send({ t: "tableHit", playerId: player.id })}
             >
-              DÍNH
+              {lang === "en" ? "HIT" : "DÍNH"}
             </ChunkyButton>
-            <ChunkyButton tone="surface" height={66} fontSize={20} onClick={() => say("Thầy tin bạn")}>
-              KHÔNG DÍNH
+            <ChunkyButton tone="surface" height={66} fontSize={20} onClick={() => say(lang === "en" ? "Oracle trusts you" : "Thầy tin bạn")}>
+              {lang === "en" ? "SAFE" : "KHÔNG DÍNH"}
             </ChunkyButton>
           </>
         );
@@ -178,10 +177,10 @@ export function PlayRoom({ code }: { code: string }) {
       if (!myVerdict) {
         return (
           <PhoneWait
-            label={`VÒNG ${round.index}`}
-            title={<>THOÁT VÒNG NÀY</>}
-            line="Chờ cả bàn cạn xong."
-            cta={{ text: "VÒNG TIẾP ➔", onClick: () => void send({ t: "nextRound" }) }}
+            label={`${t("round")} ${round.index}`}
+            title={<>{lang === "en" ? "SAFE THIS ROUND" : "THOÁT VÒNG NÀY"}</>}
+            line={lang === "en" ? "Waiting for others to finish." : "Chờ cả bàn cạn xong."}
+            cta={{ text: `${lang === "en" ? "NEXT ROUND" : "VÒNG TIẾP"} ➔`, onClick: () => void send({ t: "nextRound" }) }}
           />
         );
       }
@@ -189,7 +188,7 @@ export function PlayRoom({ code }: { code: string }) {
         return (
           <QueDone
             dose={myVerdict.dose}
-            drunkCount={round.verdicts.filter((v) => v.drunk).length}
+            drunkCount={round.verdicts.filter((v: Verdict) => v.drunk).length}
             totalPlayers={room.players.length}
             onNextRound={() => void send({ t: "nextRound" })}
           />
@@ -198,8 +197,8 @@ export function PlayRoom({ code }: { code: string }) {
       if (step === "push") {
         return (
           <PushPick
-            players={room.players.filter((p) => p.id !== player.id)}
-            onPick={(targetId) => {
+            players={room.players.filter((p: Player) => p.id !== player.id)}
+            onPick={(targetId: string) => {
               setStep("auto");
               void send({ t: "push", playerId: player.id, targetId });
             }}
@@ -211,7 +210,7 @@ export function PlayRoom({ code }: { code: string }) {
         round.clashPair && round.clashPair.includes(player.id),
       );
       const opponentId = isClashing
-        ? round.clashPair!.find((id) => id !== player.id)!
+        ? round.clashPair!.find((id: string) => id !== player.id)!
         : "";
 
       return (
@@ -226,15 +225,15 @@ export function PlayRoom({ code }: { code: string }) {
           onDrink={() => void send({ t: "drink", playerId: player.id })}
           onAppeal={() => void send({ t: "appeal", playerId: player.id })}
           onPush={() => {
-            if (player.pushUsed) deny("Hết lượt đẩy");
+            if (player.pushUsed) deny(lang === "en" ? "No pushes left" : "Hết lượt đẩy");
             else setStep("push");
           }}
           onDuel={() => {
             void send({ t: "duel", playerId: player.id });
-            say("Thách đấu — 100%");
+            say(lang === "en" ? "Duel - 100%" : "Thách đấu — 100%");
           }}
           onFlipLuck={() => void send({ t: "flipLuck", playerId: player.id })}
-          onClashResult={(win) =>
+          onClashResult={(win: boolean) =>
             void send({
               t: "clashResult",
               winnerId: win ? player.id : opponentId,
@@ -245,15 +244,12 @@ export function PlayRoom({ code }: { code: string }) {
       );
     }
 
-    // ── 5. Chế độ 2 — Truth or Drink ────────────────────────────────────
-    // Khi chốt phiếu / Reveal ➔ Tất cả điện thoại hiện màn Phán Xét đồng bộ
     if (room.phase === "reveal" && round.spotlightPlayerId) {
-      const opts = round.nextQuestionOptions;
-      if (isSpotlight && opts && opts[0] !== opts[1]) {
+      if (isSpotlight && nextQuestionOptions && nextQuestionOptions[0] !== nextQuestionOptions[1]) {
         return (
           <NextQuestionPick
-            options={opts}
-            onPick={(index) => void send({ t: "chooseNext", playerId: player.id, index })}
+            options={nextQuestionOptions}
+            onPick={(index: 0 | 1) => void send({ t: "chooseNext", playerId: player.id, index })}
           />
         );
       }
@@ -262,13 +258,12 @@ export function PlayRoom({ code }: { code: string }) {
           round={round}
           spotlight={spotlight}
           next={nextUp}
-          onTroll={(label) => void send({ t: "troll", playerId: player.id, label })}
+          onTroll={(label: string) => void send({ t: "troll", playerId: player.id, label })}
           onNextRound={() => void send({ t: "nextRound" })}
         />
       );
     }
 
-    // Người bị hỏi (Spotlight Player)
     if (isSpotlight) {
       if (step === "speak") {
         return (
@@ -283,15 +278,15 @@ export function PlayRoom({ code }: { code: string }) {
       if (step === "judged") {
         return (
           <PhoneWait
-            label={`VÒNG ${round.index}`}
-            title={<>ĐANG ĐẾM PHIẾU</>}
-            line={`${tin} tin · ${doi} nói dối. Chờ cả bàn bấm xong.`}
+            label={`${t("round")} ${round.index}`}
+            title={<>{lang === "en" ? "COUNTING VOTES" : "ĐANG ĐẾM PHIẾU"}</>}
+            line={`${tin} ${t("voteTin")} · ${doi} ${t("voteDoi")}. ${lang === "en" ? "Waiting for everyone to vote." : "Chờ cả bàn bấm xong."}`}
           />
         );
       }
       return (
         <TurnAsk
-          question={round.question ?? ""}
+          question={questionText}
           reversed={reversed}
           rage={rage}
           duel={duel}
@@ -303,10 +298,9 @@ export function PlayRoom({ code }: { code: string }) {
       );
     }
 
-    // Những người chơi còn lại: Bỏ phiếu trên điện thoại
     return (
       <>
-        <VoteHeader spotlight={spotlight} question={round.question} />
+        <VoteHeader spotlight={spotlight} question={questionText} />
         {myVote ? (
           <VoteCount tin={tin} doi={doi} />
         ) : (
@@ -321,49 +315,59 @@ export function PlayRoom({ code }: { code: string }) {
   return (
     <>
       <PhoneShell>
-        {room.phase === "round" || room.phase === "reveal" ? (
-          <div className="flex shrink-0 items-center justify-between border-b border-line/40 pb-2 mb-1 gap-2">
-            <div className="flex items-center gap-2">
-              <span className="t-label text-accent">VÒNG {round?.index}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  vibrate(HAPTIC.chip);
-                  setShowLeaderboard(true);
-                }}
-                className="rounded-sub border border-accent/40 bg-accent/10 px-2 py-0.5 text-[12px] font-black text-accent active:scale-95 transition-transform"
-              >
-                📊 BXH BỢM
-              </button>
-            </div>
-            {room.players[0]?.id === player.id ? (
-              <button
-                type="button"
-                onClick={() => {
-                  vibrate(HAPTIC.sub);
-                  void send({ t: "endGame", playerId: player.id });
-                }}
-                className="rounded-sub border border-danger/40 bg-danger-surface px-2.5 py-1 text-[12px] font-black text-danger-text active:scale-95 transition-transform"
-              >
-                👑 KẾT THÚC TRẬN
-              </button>
+        <div className="flex shrink-0 items-center justify-between border-b border-line/40 pb-2 mb-1 gap-2">
+          <div className="flex items-center gap-1.5">
+            {room.phase === "round" || room.phase === "reveal" ? (
+              <span className="t-label text-accent">{t("round")} {round?.index}</span>
             ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  vibrate(HAPTIC.sub);
-                  void send({ t: "leave", playerId: player.id });
-                  router.push("/");
-                }}
-                className="rounded-sub border border-line bg-surface px-2.5 py-1 text-[12px] font-black text-text-dim active:scale-95 transition-transform"
-              >
-                🚪 RỜI PHÒNG
-              </button>
+              <span className="t-label text-accent font-bold">BỢM SONY</span>
             )}
+            <button
+              type="button"
+              onClick={() => {
+                vibrate(HAPTIC.chip);
+                setShowLeaderboard(true);
+              }}
+              className="rounded-sub border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-black text-accent active:scale-95 transition-transform"
+            >
+              📊 {lang === "en" ? "RANKS" : "BXH"}
+            </button>
           </div>
-        ) : null}
+
+          <div className="flex items-center gap-1.5">
+            <LanguageToggle />
+            {room.phase === "round" || room.phase === "reveal" ? (
+              room.players[0]?.id === player.id ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    vibrate(HAPTIC.sub);
+                    void send({ t: "endGame", playerId: player.id });
+                  }}
+                  className="rounded-sub border border-danger/40 bg-danger-surface px-2 py-0.5 text-[11px] font-black text-danger-text active:scale-95 transition-transform"
+                >
+                  👑 {t("endGameBtn")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    vibrate(HAPTIC.sub);
+                    void send({ t: "leave", playerId: player.id });
+                    router.push("/");
+                  }}
+                  className="rounded-sub border border-line bg-surface px-2 py-0.5 text-[11px] font-black text-text-dim active:scale-95 transition-transform"
+                >
+                  🚪 {lang === "en" ? "LEAVE" : "RỜI"}
+                </button>
+              )
+            ) : null}
+          </div>
+        </div>
+
         {body}
       </PhoneShell>
+
       {showLeaderboard ? (
         <LeaderboardModal
           players={room.players}

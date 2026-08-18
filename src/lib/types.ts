@@ -1,5 +1,7 @@
 /** Bợm Sony — mô hình dữ liệu chung cho host, phone và server. */
 
+import type { Language } from "./i18n";
+
 export type Mode = "que" | "tod";
 export type Phase = "lobby" | "safety" | "round" | "reveal" | "final";
 export type Tier = "warm" | "mid" | "spicy";
@@ -14,6 +16,20 @@ export const TIER_LABEL: Record<Tier, string> = {
   spicy: "CAY",
 };
 
+export const getTierLabel = (tier: Tier, lang: Language = "vi"): string => {
+  if (lang === "en") {
+    switch (tier) {
+      case "warm":
+        return "WARM UP";
+      case "mid":
+        return "MID TIER";
+      case "spicy":
+        return "SPICY";
+    }
+  }
+  return TIER_LABEL[tier];
+};
+
 /** Một ngụm ≈ 0.25 ly. Điểm "Bợm của đêm" tính bằng số ly quy đổi. */
 export const GLASSES_PER_SIP = 0.25;
 
@@ -24,10 +40,14 @@ export type Verdict = {
   label: string;
   /** Lời phán ≤ 12 từ, giọng Thầy Phán. */
   line: string;
+  lineEn?: string;
   /** Lý do Thầy Phán giải thích vì sao bị phạt mức này. */
   reason?: string;
+  reasonEn?: string;
   task?: string;
+  taskEn?: string;
   chainNote?: string;
+  chainNoteEn?: string;
   flippedLuck?: boolean;
   drunk: boolean;
 };
@@ -70,11 +90,13 @@ export type Round = {
   /** Chỉ vòng 'tod' / 'duel'. */
   spotlightPlayerId: string | null;
   question: string | null;
+  questionEn?: string | null;
   verdicts: Verdict[];
   votes: Vote[];
   outcome: Outcome | null;
   /** 2 câu người vừa khai chọn để giao cho người kế. */
   nextQuestionOptions: [string, string] | null;
+  nextQuestionOptionsEn?: [string, string] | null;
   /** Người bị đẩy án nhận thêm — chỉ 'que'. */
   pushedTo: Record<string, string>;
   /** Cặp Thiên địch tương khắc trong vòng (nếu có). */
@@ -112,7 +134,28 @@ export const SAFETY_TOPICS = [
   "Học vấn",
 ] as const;
 
+export const SAFETY_TOPIC_LABELS: Record<string, { vi: string; en: string }> = {
+  "Gia đình": { vi: "Gia đình", en: "Family" },
+  "Tiền lương": { vi: "Tiền lương", en: "Income / Salary" },
+  "Người yêu cũ có mặt": { vi: "Người yêu cũ", en: "Ex Present" },
+  "Công việc": { vi: "Công việc", en: "Work / Job" },
+  "Cân nặng": { vi: "Cân nặng", en: "Weight" },
+  "Chuyện giường": { vi: "Chuyện 18+", en: "Intimacy (18+)" },
+  "Nợ nần": { vi: "Nợ nần", en: "Debts / Money" },
+  "Học vấn": { vi: "Học vấn", en: "Education" },
+};
+
+export const getSafetyTopicLabel = (topic: string, lang: Language = "vi"): string => {
+  return SAFETY_TOPIC_LABELS[topic]?.[lang] || topic;
+};
+
 export const DEFAULT_BANNED = ["Gia đình", "Người yêu cũ có mặt"];
 
-export const DOSE_LABEL = (dose: Dose): string =>
-  dose >= 100 ? "CẠN LY" : dose >= 50 ? "NỬA LY" : "NHẤP MÔI";
+export const DOSE_LABEL = (dose: Dose, lang: Language = "vi"): string => {
+  if (lang === "en") {
+    return dose >= 100 ? "BOTTOMS UP" : dose >= 50 ? "HALF GLASS" : "SIP DOSE";
+  }
+  return dose >= 100 ? "CẠN LY" : dose >= 50 ? "NỬA LY" : "NHẤP MÔI";
+};
+
+export const getDoseLabel = DOSE_LABEL;

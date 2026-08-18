@@ -1,11 +1,9 @@
+"use client";
+
 import type { Player, Round } from "@/lib/types";
 import { HostFrame } from "@/components/ui/Stage";
+import { useLanguage } from "@/lib/i18n";
 
-/**
- * 4d · Màn hình lớn — phán xét.
- * Khoảnh khắc cao trào, cả bàn gào. Đảo màu toàn màn để tạo cú sốc thị giác:
- * một màu chiếm hết màn, không rải vàng-đỏ-xanh cùng lúc.
- */
 export function Judgement({
   round,
   spotlight,
@@ -15,10 +13,11 @@ export function Judgement({
   spotlight: Player | null;
   next: Player | null;
 }) {
+  const { lang } = useLanguage();
   const tin = round.votes.filter((v) => v.value === "tin").length;
   const doi = round.votes.filter((v) => v.value === "doi").length;
-  const name = spotlight?.name ?? "Người đó";
-  const nextName = next?.name ?? "Người kế";
+  const name = spotlight?.name ?? (lang === "en" ? "Player" : "Người đó");
+  const nextName = next?.name ?? (lang === "en" ? "Next player" : "Người kế");
   const reversed = round.type === "reverse";
   const rage = round.type === "rage";
   const duel = round.type === "duel";
@@ -30,65 +29,57 @@ export function Judgement({
         return {
           bg: "bg-danger",
           tag: rage
-            ? `${doi} – ${tin} · THẦY PHÁN NỔI GIẬN`
+            ? `${doi} – ${tin} · ${lang === "en" ? "ORACLE RAGE" : "THẦY PHÁN NỔI GIẬN"}`
             : duel
-              ? `${doi} – ${tin} · ĐẤU TAY ĐÔI`
-              : `${doi} – ${tin} · CẢ BÀN KHÔNG TIN`,
+              ? `${doi} – ${tin} · ${lang === "en" ? "DUEL" : "ĐẤU TAY ĐÔI"}`
+              : `${doi} – ${tin} · ${lang === "en" ? "MOSTLY LIAR VOTES" : "CẢ BÀN KHÔNG TIN"}`,
           title: (
             <>
-              NÓI DỐI
-              <br />
-              RÀNH RÀNH
+              {lang === "en" ? <>CAUGHT<br />LYING</> : <>NÓI DỐI<br />RÀNH RÀNH</>}
             </>
           ),
           sips: 2 * mult,
-          line: `${name} uống. ${nextName} ra câu tiếp.`,
+          line: lang === "en" ? `${name} drinks ${2 * mult} sips. ${nextName} is up next.` : `${name} uống ${2 * mult} ngụm. ${nextName} ra câu tiếp.`,
         };
       case "skipped":
         return {
           bg: "bg-accent",
-          tag: "KHÔNG DÁM KHAI",
+          tag: lang === "en" ? "PASSED QUESTION" : "KHÔNG DÁM KHAI",
           title: (
             <>
-              NÉ ĐẸP
-              <br />
-              LẮM
+              {lang === "en" ? <>NICE<br />PASS</> : <>NÉ ĐẸP<br />LẮM</>}
             </>
           ),
           sips: reversed ? 0 : 1 * mult,
           line: reversed
-            ? `Vòng ngược đời — ${name} né nên thoát.`
-            : `${name} ngụm một cái. ${nextName} ra câu tiếp.`,
+            ? (lang === "en" ? `Reversed round — ${name} passed so free!` : `Vòng ngược đời — ${name} né nên thoát.`)
+            : (lang === "en" ? `${name} drinks ${1 * mult} sip. ${nextName} is up next.` : `${name} ngụm một cái. ${nextName} ra câu tiếp.`),
         };
       case "immune":
         return {
           bg: "bg-ink",
-          tag: "QUYỀN MIỄN TRỪ",
+          tag: lang === "en" ? "IMMUNITY SHIELD" : "QUYỀN MIỄN TRỪ",
           title: (
             <>
-              THOÁT
-              <br />
-              SẠCH
+              {lang === "en" ? <>COMPLETELY<br />SAFE</> : <>THOÁT<br />SẠCH</>}
             </>
           ),
           sips: 0,
-          line: `${name} hết quyền miễn trừ. ${nextName} ra câu tiếp.`,
+          line: lang === "en" ? `${name} used immunity shield. ${nextName} is up next.` : `${name} hết quyền miễn trừ. ${nextName} ra câu tiếp.`,
         };
       default:
         return {
           bg: "bg-safe",
-          tag: `${tin} – ${doi} · CẢ BÀN TIN`,
+          tag: `${tin} – ${doi} · ${lang === "en" ? "MOSTLY TRUTH VOTES" : "CẢ BÀN TIN"}`,
           title: (
             <>
-              THẦY TIN
-              <br />
-              THẬT THÀ
+              {lang === "en" ? <>HONEST<br />TRUTH</> : <>THẦY TIN<br />THẬT THÀ</>}
             </>
           ),
           sips: reversed ? 1 * mult : 0,
           line: reversed
-            ? `Vòng ngược đời — thật thà thì uống. ${name} ngụm đi.`
-            : `${name} thoát. ${nextName} ra câu tiếp.`,
+            ? (lang === "en" ? `Reversed round — honest drinks! ${name} drink up.` : `Vòng ngược đời — thật thà thì uống. ${name} ngụm đi.`)
+            : (lang === "en" ? `${name} is safe. ${nextName} is up next.` : `${name} thoát. ${nextName} ra câu tiếp.`),
         };
     }
   })();
@@ -107,7 +98,7 @@ export function Judgement({
               <div className="text-[104px] leading-[0.82] font-black tracking-[-0.05em] tabular-nums">
                 {view.sips}
               </div>
-              <div className="text-[26px] leading-[1.18] font-black">NGỤM</div>
+              <div className="text-[26px] leading-[1.18] font-black">{lang === "en" ? "SIP" : "NGỤM"}</div>
             </>
           ) : (
             <div className="text-[104px] leading-none font-black text-safe">✓</div>

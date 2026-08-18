@@ -4,11 +4,8 @@ import { HAPTIC, vibrate } from "@/lib/haptics";
 import type { Player } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { HostFrame } from "@/components/ui/Stage";
+import { useLanguage } from "@/lib/i18n";
 
-/**
- * 4e · Màn hình lớn — Bợm của đêm.
- * Điểm là số ly quy đổi (1 ngụm ≈ 0.25 ly). Bục 3 chỗ, hạng 1 ở giữa và cao nhất.
- */
 export function Podium({
   players,
   onNewGame,
@@ -16,13 +13,14 @@ export function Podium({
   players: Player[];
   onNewGame: () => void;
 }) {
+  const { lang, t } = useLanguage();
   const ranked = [...players].sort((a, b) => b.totalGlasses - a.totalGlasses).slice(0, 3);
   const [first, second, third] = ranked;
   const detective = [...players].sort((a, b) => b.detectivePoints - a.detectivePoints)[0];
 
   return (
     <HostFrame>
-      <div className="t-title shrink-0 text-accent">BỢM CỦA ĐÊM</div>
+      <div className="t-title shrink-0 text-accent">{t("bomOfTheNight")}</div>
 
       <div className="flex min-h-0 flex-1 items-end gap-5">
         <Step player={second} height="62%" />
@@ -33,8 +31,10 @@ export function Podium({
       <div className="flex shrink-0 items-center justify-between">
         <div className="t-body text-text-dim">
           {detective && detective.detectivePoints > 0
-            ? `${detective.name} soi đúng ${detective.detectivePoints} lần. Gọi nước lọc đi.`
-            : "Gọi nước lọc đi."}
+            ? (lang === "en"
+                ? `${detective.name} spotted lies correctly ${detective.detectivePoints} times. Order water for them!`
+                : `${detective.name} soi đúng ${detective.detectivePoints} lần. Gọi nước lọc đi.`)
+            : (lang === "en" ? "Order some water for the room!" : "Gọi nước lọc đi.")}
         </div>
         <button
           type="button"
@@ -44,7 +44,7 @@ export function Podium({
           }}
           className="rounded-main border border-line bg-surface px-[34px] py-[18px] text-[24px] font-black"
         >
-          VÒNG MỚI
+          {t("newGameBtn")}
         </button>
       </div>
     </HostFrame>

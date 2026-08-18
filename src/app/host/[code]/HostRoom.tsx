@@ -10,25 +10,26 @@ import { Safety } from "@/components/host/Safety";
 import { Spotlight } from "@/components/host/Spotlight";
 import { TrollLayer } from "@/components/host/TrollLayer";
 import { HostFrame, HostStage } from "@/components/ui/Stage";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useRoom } from "@/lib/useRoom";
-import type { Mode } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n";
+import type { Mode, Player } from "@/lib/types";
 
 /** Sau phán xét, để cả bàn gào một nhịp rồi mới sang vòng sau. */
 const REVEAL_HOLD_MS = 5200;
 
 export function HostRoom({ code, joinUrl }: { code: string; joinUrl: string }) {
   const { room, status, send } = useRoom(code);
+  const { t } = useLanguage();
 
   const nextRound = useCallback(() => void send({ t: "nextRound" }), [send]);
 
-  // Host tự giữ nhịp: không bắt chủ xị quyết định vòng nào tiếp.
   useEffect(() => {
     if (room?.phase !== "reveal") return;
     const timer = setTimeout(nextRound, REVEAL_HOLD_MS);
     return () => clearTimeout(timer);
   }, [room?.phase, room?.round, nextRound]);
 
-  // Phím tắt cho chủ xị: Space qua vòng khi bàn đã chán.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "Space" && e.code !== "Enter") return;
@@ -40,17 +41,17 @@ export function HostRoom({ code, joinUrl }: { code: string; joinUrl: string }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [room?.phase, nextRound]);
 
-  if (status === "gone") return <HostNotice title="PHÒNG ĐÃ TAN" line="Mở /host để dựng phòng mới." />;
-  if (!room) return <HostNotice title="ĐANG NỐI" line="Chờ một nhịp." />;
+  if (status === "gone") return <HostNotice title={t("roomGone")} line="Mở /host để dựng phòng mới." />;
+  if (!room) return <HostNotice title={t("reconnectNotice")} line="Chờ một nhịp." />;
 
   const round = room.current;
   const spotlight = round?.spotlightPlayerId
-    ? (room.players.find((p) => p.id === round.spotlightPlayerId) ?? null)
+    ? (room.players.find((p: Player) => p.id === round.spotlightPlayerId) ?? null)
     : null;
-  const connected = room.players.filter((p) => p.connected);
+  const connected = room.players.filter((p: Player) => p.connected);
   const nextUp =
     spotlight && connected.length > 1
-      ? connected[(connected.findIndex((p) => p.id === spotlight.id) + 1) % connected.length]
+      ? connected[(connected.findIndex((p: Player) => p.id === spotlight.id) + 1) % connected.length]
       : null;
 
   const body = (() => {
@@ -61,11 +62,11 @@ export function HostRoom({ code, joinUrl }: { code: string; joinUrl: string }) {
       return (
         <Safety
           banned={room.bannedTopics}
-          onToggle={(topic) =>
+          onToggle={(topic: string) =>
             void send({
               t: "setSafety",
               bannedTopics: room.bannedTopics.includes(topic)
-                ? room.bannedTopics.filter((x) => x !== topic)
+                ? room.bannedTopics.filter((x: string) => x !== topic)
                 : [...room.bannedTopics, topic],
             })
           }
@@ -97,7 +98,6 @@ export function HostRoom({ code, joinUrl }: { code: string; joinUrl: string }) {
     if (room.phase === "reveal" && round.spotlightPlayerId) {
       return <Judgement round={round} spotlight={spotlight} next={nextUp} />;
     }
-    // Chỉ chế độ quẻ mới có vòng tính theo phần trăm ly.
     if (room.mode === "que") {
       if (round.type === "table") return <TableRound round={round} players={room.players} />;
       return <QueRound round={round} players={room.players} />;
@@ -112,7 +112,6 @@ export function HostRoom({ code, joinUrl }: { code: string; joinUrl: string }) {
       if (round.outcome === "immune") return "bg-ink";
       return "bg-safe";
     }
-    // Thầy Phán nổi giận ở chế độ quẻ: đảo đỏ toàn màn suốt cả vòng.
     if (room.phase === "round" && round?.type === "rage" && room.mode === "que") {
       return "bg-danger";
     }
@@ -121,6 +120,9 @@ export function HostRoom({ code, joinUrl }: { code: string; joinUrl: string }) {
 
   return (
     <>
+      <div className="fixed top-4 right-4 z-50">
+        <LanguageToggle />
+      </div>
       <HostStage background={background}>{body}</HostStage>
       <TrollLayer trolls={room.trolls} />
     </>

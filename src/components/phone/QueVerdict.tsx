@@ -3,14 +3,12 @@
 import { useState } from "react";
 import { HAPTIC, vibrate } from "@/lib/haptics";
 import type { Player, Verdict } from "@/lib/types";
+import { getDoseLabel } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { ChunkyButton, SoftButton } from "@/components/ui/Buttons";
+import { useLanguage } from "@/lib/i18n";
+import { getZodiacName } from "@/lib/zodiac";
 
-/**
- * 4f · Phone — Số trời đã định (quẻ), state `verdict`.
- * Mức uống là khối toàn chữ số nên được nén 150px/0.82; nhãn và lời phán là chữ
- * Việt nên giữ line-height ≥ 1.12.
- */
 export function QueVerdict({
   round,
   zodiac,
@@ -40,80 +38,86 @@ export function QueVerdict({
   onFlipLuck: () => void;
   onClashResult: (win: boolean) => void;
 }) {
+  const { lang, t } = useLanguage();
+  const lineText = lang === "en" ? (verdict.lineEn || verdict.line) : verdict.line;
+  const reasonText = lang === "en" ? (verdict.reasonEn || verdict.reason) : verdict.reason;
+  const taskText = lang === "en" ? (verdict.taskEn || verdict.task) : verdict.task;
+  const chainNoteText = lang === "en" ? (verdict.chainNoteEn || verdict.chainNote) : verdict.chainNote;
+
   return (
     <>
       <div className="flex shrink-0 items-baseline justify-between">
-        <span className="t-label text-text-faint">VÒNG {round}</span>
+        <span className="t-label text-text-faint">{t("round")} {round}</span>
         <span className="t-label text-text-faint">
-          {zodiac ?? "—"} · {lifePath ?? "—"}
+          {getZodiacName(zodiac, lang)} · {lifePath ?? "—"}
         </span>
       </div>
 
       {clash ? (
         <div className="flex shrink-0 animate-[bsPop_0.3s_ease_both] flex-col gap-2 rounded-card border-2 border-danger bg-danger-surface p-3 text-center">
-          <div className="text-[14px] font-black text-danger-text">⚡ THIÊN ĐỊCH TƯƠNG KHẮC!</div>
-          <div className="text-[13px] text-text">Oẳn Tù Tì với đối thủ tương khắc trong bàn:</div>
+          <div className="text-[14px] font-black text-danger-text">⚡ {lang === "en" ? "ASTROLOGICAL CLASH!" : "THIÊN ĐỊCH TƯƠNG KHẮC!"}</div>
+          <div className="text-[13px] text-text">{lang === "en" ? "Rock Paper Scissors with your clash opponent:" : "Oẳn Tù Tì với đối thủ tương khắc trong bàn:"}</div>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => onClashResult(true)}
               className="flex-1 rounded-sub bg-safe py-2 text-[14px] font-black text-ink"
             >
-              THẮNG (THOÁT)
+              {lang === "en" ? "WIN (SAFE)" : "THẮNG (THOÁT)"}
             </button>
             <button
               type="button"
               onClick={() => onClashResult(false)}
               className="flex-1 rounded-sub bg-danger py-2 text-[14px] font-black text-white"
             >
-              THUA (UỐNG 100%)
+              {lang === "en" ? "LOSE (DRINK 100%)" : "THUA (UỐNG 100%)"}
             </button>
           </div>
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-[12px]">
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-[10px]">
         <div
           key={verdict.dose}
-          className="t-numeral animate-[bsPop_0.34s_cubic-bezier(0.2,1.5,0.4,1)_both] text-[120px] leading-none text-accent"
+          className="t-numeral animate-[bsPop_0.34s_cubic-bezier(0.2,1.5,0.4,1)_both] text-[110px] leading-none text-accent"
         >
           {verdict.dose}%
         </div>
-        <div className="text-[32px] leading-[1.12] font-black tracking-[-0.02em]">
-          {verdict.label}
+        <div className="text-[28px] leading-[1.12] font-black tracking-[-0.02em]">
+          {getDoseLabel(verdict.dose, lang)}
         </div>
-        <div className="t-body text-[rgb(245_243_238/0.7)] [text-wrap:pretty]">
-          {verdict.line}
+        <div className="t-body text-[rgb(245_243_238/0.75)] [text-wrap:pretty]">
+          {lineText}
         </div>
 
-        {verdict.reason ? (
-          <div className="rounded-sub border border-accent/40 bg-accent/10 p-3.5 text-[20px] leading-[1.25] font-black text-accent [text-wrap:pretty]">
-            {verdict.reason}
+        {reasonText ? (
+          <div className="rounded-sub border border-accent/40 bg-accent/10 p-3 text-[17px] leading-[1.25] font-black text-accent [text-wrap:pretty]">
+            {reasonText}
           </div>
         ) : null}
 
-        {verdict.task ? (
-          <div className="rounded-sub border border-line bg-surface p-2.5 text-[14px] font-bold text-accent">
-            🎭 {verdict.task}
+        {taskText ? (
+          <div className="rounded-sub border border-line bg-surface p-2 text-[13px] font-bold text-accent">
+            🎭 {taskText}
           </div>
         ) : null}
 
-        {verdict.chainNote ? (
-          <div className="rounded-sub border border-line bg-surface p-2 text-[13px] text-safe font-bold">
-            🔗 {verdict.chainNote}
+        {chainNoteText ? (
+          <div className="rounded-sub border border-line bg-surface p-2 text-[12px] text-safe font-bold">
+            🔗 {chainNoteText}
           </div>
         ) : null}
       </div>
 
-      <ChunkyButton onClick={onDrink}>ĐÃ UỐNG</ChunkyButton>
+      <ChunkyButton onClick={onDrink}>{t("drinkDone")}</ChunkyButton>
 
       <div className="flex shrink-0 gap-2">
-        <SoftButton onClick={onAppeal}>{appealUsed ? "HẾT CÃI" : "XIN GIẢM"}</SoftButton>
+        <SoftButton onClick={onAppeal}>{appealUsed ? (lang === "en" ? "NO APPEALS" : "HẾT CÃI") : (lang === "en" ? "APPEAL" : "XIN GIẢM")}</SoftButton>
         <SoftButton onClick={onPush} haptic={HAPTIC.push}>
-          {pushUsed ? "HẾT ĐẨY" : "ĐẨY QUA"}
+          {pushUsed ? (lang === "en" ? "NO PUSH" : "HẾT ĐẨY") : (lang === "en" ? "PUSH" : "ĐẨY QUA")}
         </SoftButton>
         <SoftButton onClick={onFlipLuck} haptic={HAPTIC.chip}>
-          {verdict.flippedLuck ? "ĐÃ LẬT" : "🎲 LẬT KÈO"}
+          {verdict.flippedLuck ? (lang === "en" ? "FLIPPED" : "ĐÃ LẬT") : (lang === "en" ? "🎲 FLIP" : "🎲 LẬT KÈO")}
         </SoftButton>
         <SoftButton danger width={56} haptic={HAPTIC.duel} onClick={onDuel} className="text-[17px]">
           ×2
@@ -123,7 +127,6 @@ export function QueVerdict({
   );
 }
 
-/** 4f · state `done` — đã cạn, bấm VÒNG TIẾP để sang vòng sau. */
 export function QueDone({
   dose,
   drunkCount,
@@ -135,36 +138,32 @@ export function QueDone({
   totalPlayers?: number;
   onNextRound: () => void;
 }) {
+  const { lang } = useLanguage();
   return (
     <>
       <div className="flex flex-1 animate-[bsRise_0.28s_ease_both] flex-col justify-center gap-[18px]">
-        <div className="flex h-25 w-25 animate-[bsPop_0.4s_cubic-bezier(0.2,1.5,0.4,1)_both] items-center justify-center rounded-full bg-safe text-[48px] font-black text-ink">
+        <div className="flex h-24 w-24 animate-[bsPop_0.4s_cubic-bezier(0.2,1.5,0.4,1)_both] items-center justify-center rounded-full bg-safe text-[44px] font-black text-ink mx-auto">
           ✓
         </div>
-        <div className="text-[64px] leading-[1.12] font-black tracking-[-0.035em] text-safe">
-          DZÔ!
+        <div className="text-[56px] leading-[1.12] font-black tracking-[-0.035em] text-safe text-center">
+          {lang === "en" ? "CHEERS!" : "DZÔ!"}
         </div>
-        <div className="t-body text-[rgb(245_243_238/0.6)]">
-          Đã cạn {dose}%. Cả bàn thấy rồi.
+        <div className="t-body text-[rgb(245_243_238/0.6)] text-center">
+          {lang === "en" ? `Drank ${dose}%. Everyone witnessed.` : `Đã cạn ${dose}%. Cả bàn thấy rồi.`}
         </div>
         {drunkCount && totalPlayers ? (
-          <div className="t-label text-accent font-black">
-            {drunkCount} / {totalPlayers} BỢM ĐÃ CẠN LY
+          <div className="t-label text-accent font-black text-center">
+            {drunkCount} / {totalPlayers} {lang === "en" ? "PLAYERS FINISHED" : "BỢM ĐÃ CẠN LY"}
           </div>
         ) : null}
       </div>
       <ChunkyButton tone="accent" height={80} fontSize={22} onClick={onNextRound}>
-        VÒNG TIẾP ➔
+        {lang === "en" ? "NEXT ROUND ➔" : "VÒNG TIẾP ➔"}
       </ChunkyButton>
     </>
   );
 }
 
-/**
- * Phone · đẩy án — chọn người.
- * Handoff liệt kê màn này ở "Not yet designed"; luật thì đã chốt (1 lần/trận,
- * chuyển toàn bộ án sang người mình chọn), nên dựng theo hệ thống 4 cỡ chữ.
- */
 export function PushPick({
   players,
   onPick,
@@ -175,9 +174,10 @@ export function PushPick({
   onCancel: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const { lang } = useLanguage();
   return (
     <>
-      <div className="t-label shrink-0 text-danger">ĐẨY ÁN QUA AI</div>
+      <div className="t-label shrink-0 text-danger">{lang === "en" ? "PUSH PENALTY TO WHOM" : "ĐẨY ÁN QUA AI"}</div>
       <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto">
         {players.map((p) => (
           <button
@@ -189,15 +189,15 @@ export function PushPick({
               vibrate(HAPTIC.push);
               onPick(p.id);
             }}
-            className="btn-soft h-[72px] shrink-0 justify-start gap-3.5 rounded-sub border border-line bg-surface px-4 text-[24px]"
+            className="btn-soft h-[64px] shrink-0 justify-start gap-3.5 rounded-sub border border-line bg-surface px-4 text-[20px]"
           >
-            <Avatar name={p.name} src={p.avatarUrl} size={44} fontSize={16} />
+            <Avatar name={p.name} src={p.avatarUrl} size={40} fontSize={15} />
             {p.name}
           </button>
         ))}
       </div>
-      <ChunkyButton tone="surface" height={66} fontSize={20} onClick={onCancel}>
-        THÔI, TỰ UỐNG
+      <ChunkyButton tone="surface" height={60} fontSize={18} onClick={onCancel}>
+        {lang === "en" ? "CANCEL, I'LL DRINK IT" : "THÔI, TỰ UỐNG"}
       </ChunkyButton>
     </>
   );

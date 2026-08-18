@@ -3,6 +3,8 @@
 import type { Player } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { HAPTIC, vibrate } from "@/lib/haptics";
+import { useLanguage } from "@/lib/i18n";
+import { getZodiacName } from "@/lib/zodiac";
 
 export function LeaderboardModal({
   players,
@@ -11,6 +13,7 @@ export function LeaderboardModal({
   players: Player[];
   onClose: () => void;
 }) {
+  const { lang, t } = useLanguage();
   const sorted = [...players].sort((a, b) => b.totalGlasses - a.totalGlasses);
 
   return (
@@ -18,8 +21,10 @@ export function LeaderboardModal({
       <div className="flex w-full max-w-[420px] max-h-[85dvh] flex-col gap-4 rounded-main border border-line bg-surface p-5 text-text shadow-2xl">
         <div className="flex shrink-0 items-center justify-between border-b border-line/60 pb-3">
           <div>
-            <div className="text-[22px] font-black text-accent leading-none">BẢNG XẾP HẠNG TỬU LƯỢNG</div>
-            <div className="text-[12px] text-text-dim mt-1 font-bold">Xếp theo số ly quy đổi từ nhiều tới ít</div>
+            <div className="text-[20px] font-black text-accent leading-none">{t("leaderboardTitle")}</div>
+            <div className="text-[12px] text-text-dim mt-1 font-bold">
+              {lang === "en" ? "Ranked by equivalent glasses drunk" : "Xếp theo số ly quy đổi từ nhiều tới ít"}
+            </div>
           </div>
           <button
             type="button"
@@ -57,17 +62,17 @@ export function LeaderboardModal({
                   <div className="min-w-0">
                     <div className="text-[16px] font-black text-text truncate">{p.name}</div>
                     <div className="text-[12px] text-text-faint">
-                      {p.zodiac ? `${p.zodiac}` : "Bợm"} · Soi đúng {p.detectivePoints} lần
+                      {p.zodiac ? getZodiacName(p.zodiac, lang) : "Drinker"} · {lang === "en" ? `Detective ${p.detectivePoints} pts` : `Soi đúng ${p.detectivePoints} lần`}
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right shrink-0">
-                  <div className={`text-[20px] font-black ${isTop ? "text-accent" : "text-text"}`}>
-                    {p.totalGlasses.toFixed(2).replace(/\.00$/, "")} LY
+                  <div className={`text-[18px] font-black ${isTop ? "text-accent" : "text-text"}`}>
+                    {p.totalGlasses.toFixed(2).replace(/\.00$/, "")} {lang === "en" ? "GLASSES" : "LY"}
                   </div>
                   <div className="text-[11px] font-bold text-text-faint">
-                    {p.connected ? "🟢 Trực tuyến" : "⚪ Rớt mạng"}
+                    {p.connected ? (lang === "en" ? "🟢 Online" : "🟢 Trực tuyến") : (lang === "en" ? "⚪ Offline" : "⚪ Rớt mạng")}
                   </div>
                 </div>
               </div>
@@ -83,7 +88,7 @@ export function LeaderboardModal({
           }}
           className="h-[52px] shrink-0 rounded-sub bg-ink font-black text-[17px] text-accent active:scale-95 transition-transform"
         >
-          ĐÓNG BẢNG
+          {lang === "en" ? "CLOSE" : "ĐÓNG BẢNG"}
         </button>
       </div>
     </div>

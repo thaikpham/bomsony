@@ -7,6 +7,8 @@ import {
   type Player,
   type Room,
   type Round,
+  type Verdict,
+  type Vote,
   type VoteValue,
 } from "./types";
 import { pickQuestions, pickTablePrompt } from "./questions";
@@ -46,13 +48,12 @@ export type Action =
 
 export class Rejected extends Error {}
 
-/** Toast copy chốt trong thiết kế. Khai báo dạng function để TS thu hẹp kiểu sau khi gọi. */
 function reject(msg: string): never {
   throw new Rejected(msg);
 }
 
 const findPlayer = (room: Room, id: string): Player | undefined =>
-  room.players.find((p) => p.id === id);
+  room.players.find((p: Player) => p.id === id);
 
 const seedOf = (room: Room, salt: number) => {
   let h = 0;
@@ -68,9 +69,8 @@ const addPercent = (p: Player, dose: Dose) => {
   p.totalGlasses = Math.round((p.totalGlasses + dose / 100) * 100) / 100;
 };
 
-/** Chỉ tính người đang kết nối — người rớt mạng không chặn vòng. */
 const voters = (room: Room, exceptId: string | null) =>
-  room.players.filter((p) => p.connected && p.id !== exceptId);
+  room.players.filter((p: Player) => p.connected && p.id !== exceptId);
 
 // ── Khởi tạo vòng ───────────────────────────────────────────────────────────
 
@@ -87,8 +87,7 @@ function beginRound(room: Room, index: number, carriedQuestion?: string): void {
   const tier = tierFor(index);
   const seed = seedOf(room, index);
 
-  // Tìm cặp Thiên địch tương khắc (nếu có)
-  const activePlayers = room.players.filter((p) => p.connected && p.zodiac);
+  const activePlayers = room.players.filter((p: Player) => p.connected && p.zodiac);
   let clashPair: [string, string] | null = null;
   for (let i = 0; i < activePlayers.length; i++) {
     for (let j = i + 1; j < activePlayers.length; j++) {
@@ -106,6 +105,7 @@ function beginRound(room: Room, index: number, carriedQuestion?: string): void {
     tier,
     spotlightPlayerId: null,
     question: null,
+    questionEn: null,
     verdicts: [],
     votes: [],
     outcome: null,
@@ -115,9 +115,8 @@ function beginRound(room: Room, index: number, carriedQuestion?: string): void {
     startedAt: Date.now(),
   };
 
-  // Mode 1 (Số trời đã định) — luôn sinh quẻ cho tất cả người chơi
   if (mode === "que") {
-    round.verdicts = room.players.map((p) =>
+    round.verdicts = room.players.map((p: Player) =>
       makeVerdict({
         playerId: p.id,
         name: p.name,
@@ -129,20 +128,26 @@ function beginRound(room: Room, index: number, carriedQuestion?: string): void {
     );
     if (type === "wildcard") {
       round.question = "QUẺ MẬT CẢ BÀN: Ai có tháng sinh lẻ hoặc đang đeo phụ kiện ➔ Cạn ly 50%!";
+      round.questionEn = "SECRET WILDCARD: Anyone born in an odd month or wearing accessories ➔ Half glass 50%!";
     } else if (type === "table") {
-      round.question = pickTablePrompt(room.bannedTopics, room.usedQuestions, seed);
+      const q = pickTablePrompt(room.bannedTopics, room.usedQuestions, seed);
+      round.question = q.text;
+      round.questionEn = q.textEn || q.text;
       room.usedQuestions.push(round.question);
     }
   } else {
     // Mode 2 (Truth or Drink)
-    const ids = room.players.filter((p) => p.connected).map((p) => p.id);
+    const ids = room.players.filter((p: Player) => p.connected).map((p: Player) => p.id);
     round.spotlightPlayerId = pickSpotlight(ids, room.current?.spotlightPlayerId ?? null);
-    const q =
-      carriedQuestion ??
-      pickQuestions(tier, room.bannedTopics, room.usedQuestions, 1, seed)[0] ??
-      "Bạn từng nói dối để trốn một buổi hẹn chưa?";
-    round.question = q;
-    room.usedQuestions.push(q);
+    const qObj = carriedQuestion
+      ? { text: carriedQuestion, textEn: carriedQuestion }
+      : pickQuestions(tier, room.bannedTopics, room.usedQuestions, 1, seed)[0] ?? {
+          text: "Bạn từng nói dối để trốn một buổi hẹn chưa?",
+          textEn: "Have you ever lied to get out of a hang out?",
+        };
+    round.question = typeof qObj === "string" ? qObj : qObj.text;
+    round.questionEn = typeof qObj === "string" ? qObj : (qObj.textEn || qObj.text);
+    room.usedQuestions.push(round.question);
   }
 
   room.round = index;
@@ -157,13 +162,11 @@ function closeVoting(room: Room): void {
   const spotlight = findPlayer(room, r.spotlightPlayerId);
   if (!spotlight) return;
 
-  const tin = r.votes.filter((v) => v.value === "tin").length;
-  const doi = r.votes.filter((v) => v.value === "doi").length;
+  const tin = r.votes.filter((v: Vote) => v.value === "tin").length;
+  const doi = r.votes.filter((v: Vote) => v.value === "doi").length;
   const liar = doi > tin;
   r.outcome = liar ? "liar" : "truth";
 
-  // Ngược đời: ai trả lời thật thì uống, ai né thì không.
-  // Thầy Phán nổi giận: ×2 án — vẫn đo bằng ngụm, không đổi đơn vị.
   const reversed = r.type === "reverse";
   const mult = r.type === "rage" || r.type === "duel" ? 2 : 1;
   if (liar) addGlasses(spotlight, 2 * mult);
@@ -176,7 +179,6 @@ function closeVoting(room: Room): void {
     if (correct) p.detectivePoints += 1;
   }
 
-  // Người vừa khai chọn 1 trong 2 câu để giao cho người kế.
   const opts = pickQuestions(
     tierFor(r.index + 1),
     room.bannedTopics,
@@ -184,7 +186,12 @@ function closeVoting(room: Room): void {
     2,
     seedOf(room, r.index + 7),
   );
-  r.nextQuestionOptions = opts.length === 2 ? [opts[0], opts[1]] : null;
+  if (opts.length === 2) {
+    r.nextQuestionOptions = [opts[0].text, opts[1].text];
+    r.nextQuestionOptionsEn = [opts[0].textEn || opts[0].text, opts[1].textEn || opts[1].text];
+  } else {
+    r.nextQuestionOptions = null;
+  }
   room.phase = "reveal";
 }
 
@@ -209,11 +216,10 @@ export function apply(room: Room, a: Action): Room {
       if (!room.mode) reject("Chọn chế độ đi");
       if (room.players.length === 0) reject("Chưa có ai vào");
       if (room.mode === "tod" && room.phase === "lobby") {
-        // Vùng cấm là bắt buộc trước Truth or Drink.
         room.phase = "safety";
         break;
       }
-      if (room.mode === "que" && room.players.some((p) => !p.birthDate)) {
+      if (room.mode === "que" && room.players.some((p: Player) => !p.birthDate)) {
         reject("Còn người chưa nhập ngày sinh");
       }
       beginRound(room, 1);
@@ -267,13 +273,13 @@ export function apply(room: Room, a: Action): Room {
     // ── Chế độ 1 — Số trời đã định ────────────────────────────────────────
     case "drink": {
       if (!r) reject("Chưa vào vòng");
-      const v = r!.verdicts.find((x) => x.playerId === a.playerId);
+      const v = r!.verdicts.find((x: Verdict) => x.playerId === a.playerId);
       if (!v) reject("Vòng này bạn không có quẻ");
       if (v!.drunk) break;
       v!.drunk = true;
       const p = findPlayer(room, a.playerId);
       if (p) addPercent(p, v!.dose);
-      if (r!.verdicts.length > 0 && r!.verdicts.every((x) => x.drunk)) {
+      if (r!.verdicts.length > 0 && r!.verdicts.every((x: Verdict) => x.drunk)) {
         room.phase = "reveal";
       }
       break;
@@ -281,7 +287,7 @@ export function apply(room: Room, a: Action): Room {
 
     case "appeal": {
       const p = findPlayer(room, a.playerId);
-      const v = r?.verdicts.find((x) => x.playerId === a.playerId);
+      const v = r?.verdicts.find((x: Verdict) => x.playerId === a.playerId);
       if (!p || !v) reject("Không có gì để xin");
       if (v!.drunk) reject("Uống rồi còn cãi");
       if (p!.appealUsed) reject("Thầy tha một lần thôi");
@@ -289,6 +295,7 @@ export function apply(room: Room, a: Action): Room {
       v!.dose = 25;
       v!.label = DOSE_LABEL(25);
       v!.line = "Thầy nể mặt lần này.";
+      v!.lineEn = "The Oracle shows mercy this time.";
       room.rageGauge = Math.min(100, (room.rageGauge || 0) + 25);
       break;
     }
@@ -296,20 +303,20 @@ export function apply(room: Room, a: Action): Room {
     case "push": {
       const p = findPlayer(room, a.playerId);
       const target = findPlayer(room, a.targetId);
-      const v = r?.verdicts.find((x) => x.playerId === a.playerId);
+      const v = r?.verdicts.find((x: Verdict) => x.playerId === a.playerId);
       if (!p || !v) reject("Không có án để đẩy");
       if (p.pushUsed) reject("Hết lượt đẩy");
       if (v.drunk) reject("Uống rồi, đẩy gì nữa");
       if (!target || target.id === p!.id) reject("Chọn người khác");
       p!.pushUsed = true;
-      v!.drunk = true; // án chuyển đi, mình sạch
+      v!.drunk = true;
       room.rageGauge = Math.min(100, (room.rageGauge || 0) + 25);
-      const tv = r!.verdicts.find((x) => x.playerId === target!.id);
+      const tv = r!.verdicts.find((x: Verdict) => x.playerId === target!.id);
       if (tv) {
-        // Chuyển toàn bộ án sang người được chọn — cộng dồn, trần vẫn là 100%.
         tv.dose = mergeDose(tv.dose, v!.dose);
         tv.label = DOSE_LABEL(tv.dose);
         tv.line = `${p!.name} đẩy án qua. Nhận đi.`;
+        tv.lineEn = `${p!.name} pushed penalty to you. Accept it!`;
         tv.drunk = false;
       } else {
         r!.verdicts.push({
@@ -317,6 +324,7 @@ export function apply(room: Room, a: Action): Room {
           dose: v!.dose,
           label: DOSE_LABEL(v!.dose),
           line: `${p!.name} đẩy án qua. Nhận đi.`,
+          lineEn: `${p!.name} pushed penalty to you. Accept it!`,
           drunk: false,
         });
       }
@@ -325,78 +333,83 @@ export function apply(room: Room, a: Action): Room {
     }
 
     case "duel": {
-      const v = r?.verdicts.find((x) => x.playerId === a.playerId);
+      const v = r?.verdicts.find((x: Verdict) => x.playerId === a.playerId);
       if (!v) reject("Không có án để thách");
       if (v!.drunk) reject("Uống rồi");
       v!.dose = 100;
       v!.label = DOSE_LABEL(100);
       v!.line = "Gan to thì trả giá.";
+      v!.lineEn = "Pay the price for being bold.";
       break;
     }
 
     case "flipLuck": {
-      const vA = r?.verdicts.find((x) => x.playerId === a.playerId);
+      const vA = r?.verdicts.find((x: Verdict) => x.playerId === a.playerId);
       const pA = findPlayer(room, a.playerId);
       if (!vA || !pA) reject("Không có quẻ để lật");
       if (vA.drunk) reject("Uống rồi không lật kèo được nữa");
       if (vA.flippedLuck) reject("Mỗi vòng chỉ được LẬT KÈO 1 lần!");
 
-      // Tìm những người chơi khác trong phòng chưa uống
       const others = r?.verdicts.filter(
-        (x) => x.playerId !== a.playerId && !x.drunk,
+        (x: Verdict) => x.playerId !== a.playerId && !x.drunk,
       );
       if (!others || others.length === 0) {
         reject("Không có ai khác trong bàn để tráo quẻ!");
       }
 
-      // Chọn ngẫu nhiên 1 đối thủ B
       const vB = others[Math.floor(Math.random() * others.length)];
       const pB = findPlayer(room, vB.playerId);
       const nameB = pB?.name ?? "đối thủ";
 
-      // Tráo quẻ giữa A và B
       const tempDose = vA.dose;
       const tempLabel = vA.label;
 
       vA.dose = vB.dose;
       vA.label = vB.label;
       vA.line = `LẬT KÈO THÀNH CÔNG! Bạn tráo quẻ với ${nameB}!`;
+      vA.lineEn = `FLIP LUCK SUCCESS! You swapped oracle with ${nameB}!`;
       vA.reason = `Thầy tráo mức phạt của ${pA.name} sang ${nameB} và ngược lại!`;
+      vA.reasonEn = `Oracle swapped penalty between ${pA.name} and ${nameB}!`;
       vA.flippedLuck = true;
 
       vB.dose = tempDose;
       vB.label = tempLabel;
       vB.line = `${pA.name} đã LẬT KÈO tráo án với bạn!`;
+      vB.lineEn = `${pA.name} FLIPPED LUCK and swapped penalty with you!`;
       vB.reason = `Án phạt ${tempDose}% của ${pA.name} vừa bay qua đầu bạn!`;
+      vB.reasonEn = `${pA.name}'s penalty dose of ${tempDose}% was transferred to you!`;
 
       room.rageGauge = Math.min(100, (room.rageGauge || 0) + 20);
       break;
     }
 
     case "clashResult": {
-      const vWin = r?.verdicts.find((x) => x.playerId === a.winnerId);
-      const vLose = r?.verdicts.find((x) => x.playerId === a.loserId);
+      const vWin = r?.verdicts.find((x: Verdict) => x.playerId === a.winnerId);
+      const vLose = r?.verdicts.find((x: Verdict) => x.playerId === a.loserId);
       if (vWin) {
         vWin.dose = 25;
         vWin.label = DOSE_LABEL(25);
         vWin.line = "THẮNG TƯƠNG KHẮC! Thoát cạn ly.";
+        vWin.lineEn = "CLASH VICTORY! Escaped bottom up.";
       }
       if (vLose) {
         vLose.dose = 100;
         vLose.label = DOSE_LABEL(100);
         vLose.line = "THUA TƯƠNG KHẮC! Nhận trọn CẠN LY 100%.";
+        vLose.lineEn = "CLASH DEFEAT! Penalty: Bottoms up 100%.";
       }
       break;
     }
 
     case "tableHit": {
       if (!r || r.type !== "table" || room.mode !== "que") reject("Không phải vòng cả bàn");
-      if (r!.verdicts.some((x) => x.playerId === a.playerId)) break;
+      if (r!.verdicts.some((x: Verdict) => x.playerId === a.playerId)) break;
       r!.verdicts.push({
         playerId: a.playerId,
         dose: 50,
         label: DOSE_LABEL(50),
         line: "Dính rồi. Nửa ly.",
+        lineEn: "Hit! Drink half glass.",
         drunk: false,
       });
       break;
@@ -406,7 +419,6 @@ export function apply(room: Room, a: Action): Room {
     case "speakDone": {
       if (!r || r.spotlightPlayerId !== a.playerId) reject("Chưa tới lượt bạn");
       if (voters(room, a.playerId).length === 0) {
-        // Chơi một mình thì không có ai soi — coi như thật.
         r!.outcome = "truth";
         room.phase = "reveal";
       }
@@ -417,7 +429,6 @@ export function apply(room: Room, a: Action): Room {
       if (!r || r.spotlightPlayerId !== a.playerId) reject("Chưa tới lượt bạn");
       const p = findPlayer(room, a.playerId);
       r!.outcome = "skipped";
-      // Ngược đời: né thì không uống.
       if (p && r!.type !== "reverse")
         addGlasses(p, r!.type === "rage" || r!.type === "duel" ? 2 : 1);
       room.phase = "reveal";
@@ -439,7 +450,7 @@ export function apply(room: Room, a: Action): Room {
       if (!r || !r.spotlightPlayerId) reject("Chưa có ai lên thớt");
       if (r!.spotlightPlayerId === a.playerId) reject("Bạn đang khai, soi ai");
       if (r!.outcome) reject("Chốt phiếu rồi");
-      const existing = r!.votes.find((v) => v.voterId === a.playerId);
+      const existing = r!.votes.find((v: Vote) => v.voterId === a.playerId);
       if (existing) existing.value = a.value;
       else r!.votes.push({ voterId: a.playerId, value: a.value });
       if (r!.votes.length >= voters(room, r!.spotlightPlayerId).length) {
@@ -453,6 +464,10 @@ export function apply(room: Room, a: Action): Room {
       if (r!.spotlightPlayerId !== a.playerId) reject("Không phải lượt bạn");
       const q = r!.nextQuestionOptions[a.index];
       r!.nextQuestionOptions = [q, q];
+      if (r!.nextQuestionOptionsEn) {
+        const qEn = r!.nextQuestionOptionsEn[a.index];
+        r!.nextQuestionOptionsEn = [qEn, qEn];
+      }
       break;
     }
 
@@ -487,9 +502,9 @@ export function apply(room: Room, a: Action): Room {
     }
 
     case "leave": {
-      room.players = room.players.filter((p) => p.id !== a.playerId);
+      room.players = room.players.filter((p: Player) => p.id !== a.playerId);
       if (r?.verdicts) {
-        r.verdicts = r.verdicts.filter((v) => v.playerId !== a.playerId);
+        r.verdicts = r.verdicts.filter((v: Verdict) => v.playerId !== a.playerId);
       }
       break;
     }

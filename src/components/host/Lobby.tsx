@@ -5,8 +5,8 @@ import { HAPTIC, vibrate } from "@/lib/haptics";
 import type { Player } from "@/lib/types";
 import { Avatar, EmptySeat } from "@/components/ui/Avatar";
 import { HostFrame } from "@/components/ui/Stage";
+import { useLanguage } from "@/lib/i18n";
 
-/** 4b · Màn hình lớn — phòng chờ. Hiện QR + mã phòng; hiện ai đã vào. */
 export function Lobby({
   code,
   joinUrl,
@@ -18,12 +18,13 @@ export function Lobby({
   players: Player[];
   onStart: () => void;
 }) {
+  const { lang, t } = useLanguage();
   const host = joinUrl.replace(/^https?:\/\//, "").split("/")[0].toUpperCase();
 
   return (
     <HostFrame>
       <div className="flex shrink-0 items-baseline justify-between">
-        <div className="t-title">{players.length} BỢM</div>
+        <div className="t-title">{players.length} {lang === "en" ? "PLAYERS" : "BỢM"}</div>
         <div className="t-label text-text-faint">{host || "BOMSONY.APP"}</div>
       </div>
 
@@ -62,7 +63,7 @@ export function Lobby({
           rel="noopener noreferrer"
           className="rounded-main border border-line bg-surface px-5 py-[18px] text-[18px] font-black text-text-dim hover:text-accent transition-colors"
         >
-          + TẠO PHÒNG KHÁC
+          {lang === "en" ? "+ CREATE ANOTHER ROOM" : "+ TẠO PHÒNG KHÁC"}
         </a>
         <button
           type="button"
@@ -75,7 +76,7 @@ export function Lobby({
             players.length ? "bg-accent text-ink" : "bg-surface text-[rgb(245_243_238/0.32)]"
           }`}
         >
-          BẮT ĐẦU
+          {t("startBtn")}
         </button>
       </div>
     </HostFrame>
