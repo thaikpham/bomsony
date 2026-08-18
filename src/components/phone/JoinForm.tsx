@@ -65,7 +65,14 @@ export function JoinForm({ initialCode = "" }: { initialCode?: string }) {
 
   return (
     <PhoneShell>
-      <div className="t-label shrink-0 text-accent">BỢM SONY</div>
+      <div className="flex shrink-0 flex-col items-center gap-1.5 pt-3 text-center">
+        <h1 className="animate-[bsBounce_1.6s_cubic-bezier(0.28,0.84,0.42,1)_infinite] text-[52px] leading-none font-black tracking-[-0.04em] text-accent drop-shadow-[0_6px_20px_rgba(255,230,0,0.45)]">
+          BỢM SONY 🍺
+        </h1>
+        <div className="t-label text-text-faint tracking-[0.2em] text-[12px]">
+          GAME NHẬU MÀN HÌNH LỚN
+        </div>
+      </div>
 
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-5">
         <div className="text-[56px] leading-[1.12] font-black tracking-[-0.035em]">

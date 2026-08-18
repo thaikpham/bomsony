@@ -33,6 +33,7 @@
   --animate-bs-rise: bsRise 0.28s ease both;
   --animate-bs-pop: bsPop 0.34s cubic-bezier(0.2, 1.5, 0.4, 1) both;
   --animate-bs-breathe: bsBreathe 1.8s ease-in-out infinite;
+  --animate-bs-bounce: bsBounce 1.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite;
 
   @keyframes bsPulse {
     0%,
@@ -73,6 +74,21 @@
     }
     50% {
       opacity: 1;
+    }
+  }
+  @keyframes bsBounce {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    40% {
+      transform: translateY(-14px) scale(1.06);
+    }
+    60% {
+      transform: translateY(-4px) scale(0.98);
+    }
+    80% {
+      transform: translateY(-8px) scale(1.02);
     }
   }
 }
