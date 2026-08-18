@@ -19,6 +19,7 @@ import { PhoneShell } from "@/components/ui/Stage";
 import { Toast } from "@/components/ui/Toast";
 import { TrollLayer } from "@/components/host/TrollLayer";
 import { HAPTIC, vibrate } from "@/lib/haptics";
+import { useRouter } from "next/navigation";
 import { useIdentity } from "@/lib/identity";
 import { useRoom } from "@/lib/useRoom";
 import type { VoteValue, Mode } from "@/lib/types";
@@ -28,6 +29,7 @@ import { LeaderboardModal } from "@/components/phone/LeaderboardModal";
 type Step = "auto" | "push" | "speak" | "judged";
 
 export function PlayRoom({ code }: { code: string }) {
+  const router = useRouter();
   const { room, status, toast, say, deny, send } = useRoom(code);
   const me = useIdentity();
   const [step, setStep] = useState<Step>("auto");
@@ -334,16 +336,30 @@ export function PlayRoom({ code }: { code: string }) {
                 📊 BXH BỢM
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                vibrate(HAPTIC.sub);
-                void send({ t: "endGame", playerId: player.id });
-              }}
-              className="rounded-sub border border-danger/40 bg-danger-surface px-2.5 py-1 text-[12px] font-black text-danger-text active:scale-95 transition-transform"
-            >
-              🏁 KẾT THÚC TRẬN
-            </button>
+            {room.players[0]?.id === player.id ? (
+              <button
+                type="button"
+                onClick={() => {
+                  vibrate(HAPTIC.sub);
+                  void send({ t: "endGame", playerId: player.id });
+                }}
+                className="rounded-sub border border-danger/40 bg-danger-surface px-2.5 py-1 text-[12px] font-black text-danger-text active:scale-95 transition-transform"
+              >
+                👑 KẾT THÚC TRẬN
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  vibrate(HAPTIC.sub);
+                  void send({ t: "leave", playerId: player.id });
+                  router.push("/");
+                }}
+                className="rounded-sub border border-line bg-surface px-2.5 py-1 text-[12px] font-black text-text-dim active:scale-95 transition-transform"
+              >
+                🚪 RỜI PHÒNG
+              </button>
+            )}
           </div>
         ) : null}
         {body}

@@ -41,6 +41,7 @@ export type Action =
   | { t: "troll"; playerId: string; label: string }
   | { t: "nextRound" }
   | { t: "endGame"; playerId?: string }
+  | { t: "leave"; playerId: string }
   | { t: "newGame" };
 
 export class Rejected extends Error {}
@@ -459,7 +460,18 @@ export function apply(room: Room, a: Action): Room {
     }
 
     case "endGame": {
+      if (a.playerId && room.players[0] && room.players[0].id !== a.playerId) {
+        reject("Chỉ chủ phòng mới có quyền kết thúc trận đấu!");
+      }
       room.phase = "final";
+      break;
+    }
+
+    case "leave": {
+      room.players = room.players.filter((p) => p.id !== a.playerId);
+      if (r?.verdicts) {
+        r.verdicts = r.verdicts.filter((v) => v.playerId !== a.playerId);
+      }
       break;
     }
 
