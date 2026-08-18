@@ -22,6 +22,7 @@ import { HAPTIC, vibrate } from "@/lib/haptics";
 import { useIdentity } from "@/lib/identity";
 import { useRoom } from "@/lib/useRoom";
 import type { VoteValue, Mode } from "@/lib/types";
+import { LeaderboardModal } from "@/components/phone/LeaderboardModal";
 
 /** Bước cục bộ trong màn hiện tại — server không cần biết. */
 type Step = "auto" | "push" | "speak" | "judged";
@@ -30,6 +31,7 @@ export function PlayRoom({ code }: { code: string }) {
   const { room, status, toast, say, deny, send } = useRoom(code);
   const me = useIdentity();
   const [step, setStep] = useState<Step>("auto");
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const rejoined = useRef(false);
 
   // Reload giữa trận / rớt mạng → tự vào lại phòng, không bắt gõ tên lần nữa.
@@ -311,8 +313,20 @@ export function PlayRoom({ code }: { code: string }) {
     <>
       <PhoneShell>
         {room.phase === "round" || room.phase === "reveal" ? (
-          <div className="flex shrink-0 items-center justify-between border-b border-line/40 pb-2 mb-1">
-            <div className="t-label text-accent">VÒNG {round?.index}</div>
+          <div className="flex shrink-0 items-center justify-between border-b border-line/40 pb-2 mb-1 gap-2">
+            <div className="flex items-center gap-2">
+              <span className="t-label text-accent">VÒNG {round?.index}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  vibrate(HAPTIC.chip);
+                  setShowLeaderboard(true);
+                }}
+                className="rounded-sub border border-accent/40 bg-accent/10 px-2 py-0.5 text-[12px] font-black text-accent active:scale-95 transition-transform"
+              >
+                📊 BXH BỢM
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -327,6 +341,12 @@ export function PlayRoom({ code }: { code: string }) {
         ) : null}
         {body}
       </PhoneShell>
+      {showLeaderboard ? (
+        <LeaderboardModal
+          players={room.players}
+          onClose={() => setShowLeaderboard(false)}
+        />
+      ) : null}
       <TrollLayer trolls={room.trolls} />
       <Toast value={toast} />
     </>
